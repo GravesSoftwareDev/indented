@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Indented{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <script>if (localStorage.getItem('theme') === 'light') document.documentElement.classList.add('light-mode');</script>
 </head>
 <body>
 
@@ -24,6 +25,9 @@
         {% else %}
           <li><a href="{% url 'login' %}">Log In</a></li>
         {% endif %}
+        <li>
+          <button id="theme-toggle" onclick="toggleTheme()" style="background:none;border:none;color:var(--clr-muted);font-family:var(--font-mono);font-size:0.85rem;cursor:pointer;padding:0;transition:color 0.15s;" onmouseover="this.style.color='var(--clr-purple)'" onmouseout="this.style.color='var(--clr-muted)'">[ light ]</button>
+        </li>
       </ul>
     </div>
   </nav>
@@ -43,6 +47,20 @@
   <script>
     function toggleNav() {
       document.getElementById('nav-links').classList.toggle('open');
+    }
+
+    (function () {
+      const btn = document.getElementById('theme-toggle');
+      if (document.documentElement.classList.contains('light-mode')) {
+        btn.textContent = '[ dark ]';
+      }
+    })();
+
+    function toggleTheme() {
+      const btn = document.getElementById('theme-toggle');
+      const isLight = document.documentElement.classList.toggle('light-mode');
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      btn.textContent = isLight ? '[ dark ]' : '[ light ]';
     }
   </script>
 

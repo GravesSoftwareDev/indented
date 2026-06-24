@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -135,6 +136,7 @@ def assignment_detail(request, course_slug, assignment_slug):
         'course': course,
         'assignment': assignment,
         'passed': passed,
+        'test_inputs_json': json.dumps(assignment.get_test_inputs()),
     })
 
 

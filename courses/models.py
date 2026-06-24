@@ -76,6 +76,7 @@ class Assignment(models.Model):
     instructions    = models.TextField()
     buggy_code      = models.TextField()
     expected_output = models.TextField()
+    test_inputs     = models.TextField(blank=True, default='', help_text='One input value per line, in the order they will be fed to input() calls when the code runs.')
     order           = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -84,6 +85,9 @@ class Assignment(models.Model):
 
     def __str__(self):
         return f"{self.course.title} — {self.title}"
+
+    def get_test_inputs(self):
+        return [line.strip() for line in self.test_inputs.splitlines() if line.strip()]
 
 
 class AssignmentSubmission(models.Model):

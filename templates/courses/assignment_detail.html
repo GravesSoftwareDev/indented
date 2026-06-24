@@ -39,10 +39,15 @@
       <div id="editor"></div>
     </div>
 
-    <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.6rem; align-items: center; background: var(--clr-surface);">
+    <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.6rem; align-items: center; background: var(--clr-surface); flex-wrap: wrap;">
       <button id="run-btn" class="btn btn--primary" style="padding: 0.35rem 1rem;" onclick="runCode()">[ run ]</button>
       <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="clearTerminal()">[ clear ]</button>
       <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="copyOutput()" id="copy-btn">[ copy output ]</button>
+      {% if assignment.get_test_inputs %}
+        <span style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--clr-muted); margin-left: auto;">
+          // inputs: {{ assignment.get_test_inputs|join:", " }}
+        </span>
+      {% endif %}
     </div>
 
     <div id="terminal" class="lesson-terminal" style="min-height: 160px; max-height: 320px; flex: none;">
@@ -64,13 +69,14 @@
       <br>
     {% endif %}
 
-    <div style="display: flex; gap: 0.5rem; align-items: center;">
+    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
       <button
         id="submit-btn"
         class="btn btn--accent"
         onclick="submitAssignment()"
         {% if passed %}style="opacity: 0.6;"{% endif %}
       >[ submit ]</button>
+      <button class="btn btn--ghost" onclick="resetCode()">[ reset ]</button>
       {% if passed %}
         <span style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--clr-muted);">// re-submit to try again</span>
       {% endif %}
@@ -92,9 +98,13 @@
 
 <script>
   const buggyCode = `{{ assignment.buggy_code|escapejs }}`;
+  const TEST_INPUTS = {{ test_inputs_json }};
+
+  const STORAGE_KEY = 'assignment_code_{{ assignment.id }}';
+  const savedCode = localStorage.getItem(STORAGE_KEY);
 
   const cmEditor = CodeMirror(document.getElementById('editor'), {
-    value: buggyCode,
+    value: savedCode !== null ? savedCode : buggyCode,
     mode: 'python',
     theme: 'default',
     lineNumbers: true,
@@ -108,6 +118,15 @@
   });
 
   window.getEditorCode = () => cmEditor.getValue();
+
+  cmEditor.on('change', () => localStorage.setItem(STORAGE_KEY, cmEditor.getValue()));
+
+  function resetCode() {
+    if (confirm('Reset to the original buggy code? Your edits will be lost.')) {
+      cmEditor.setValue(buggyCode);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
 
   // --- Copy terminal output ---
   const terminal = document.getElementById('terminal');
@@ -256,6 +275,19 @@ def _make_input_fn(responses):
         js.window.__pending_prompt__ = str(prompt)
         raise InputNeeded(str(prompt))
     return _input
+
+def _make_input_fn_preset(responses):
+    call_index = [0]
+    def _input(prompt=''):
+        idx = call_index[0]
+        if idx < len(responses):
+            val = responses[idx]
+            call_index[0] += 1
+            sys.stdout.write(str(prompt) + str(val) + '\\n')
+            return str(val)
+        js.window.__pending_prompt__ = str(prompt)
+        raise InputNeeded(str(prompt))
+    return _input
     `);
     status.textContent = 'ready';
     runBtn.disabled = false;
@@ -269,11 +301,40 @@ def _make_input_fn(responses):
     status.textContent = 'running...';
     clearTerminal();
     const code = window.getEditorCode ? window.getEditorCode() : '';
-    const history = [];
-    await executeWithInputs(code, history);
+    if (TEST_INPUTS.length > 0) {
+      await runWithPresetInputs(code);
+    } else {
+      await executeWithInputs(code, []);
+    }
     isRunning = false;
     runBtn.disabled = false;
     status.textContent = 'done.';
+  }
+
+  async function runWithPresetInputs(code) {
+    pyodide.globals.set('__current_responses__', pyodide.toPy(TEST_INPUTS));
+    try {
+      pyodide.runPython(`
+import sys, io, builtins
+sys.stdout = io.StringIO()
+sys.stderr = io.StringIO()
+builtins.input = _make_input_fn_preset(list(__current_responses__))
+      `);
+      pyodide.runPython(code);
+      const out = pyodide.runPython('sys.stdout.getvalue()');
+      const err = pyodide.runPython('sys.stderr.getvalue()');
+      if (out) termWrite(out, '#E8E6E1');
+      if (err) termWrite(err, '#F87171');
+    } catch (e) {
+      let errMsg = '';
+      try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
+      catch (_) { errMsg = e.message || 'Unknown error'; }
+      if (e.type === 'InputNeeded' || (errMsg && errMsg.includes('InputNeeded'))) {
+        termWrite('// not enough test inputs — check the assignment configuration\n', '#FACC15');
+      } else {
+        termWrite(errMsg, '#F87171');
+      }
+    }
   }
 
   async function executeWithInputs(code, history) {

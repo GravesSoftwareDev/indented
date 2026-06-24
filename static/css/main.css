@@ -569,3 +569,75 @@ main:has(.lesson-layout) {
     padding: 1rem;
   }
 }
+
+/* --- Light mode --- */
+html.light-mode {
+  --clr-bg:         #F7F6F1;
+  --clr-surface:    #FFFFFF;
+  --clr-surface-2:  #EDECEA;
+  --clr-border:     #D6D5CE;
+
+  --clr-purple:     #6B38C0;
+  --clr-purple-dk:  #552EA0;
+  --clr-purple-dim: rgba(107, 56, 192, 0.08);
+
+  --clr-text:       #1C1B18;
+  --clr-muted:      #68675F;
+  --clr-subtle:     #B8B7B0;
+
+  --clr-success:    #16A34A;
+  --clr-warning:    #B45309;
+  --clr-danger:     #DC2626;
+}
+
+@media (min-width: 1100px) {
+  html.light-mode body {
+    background-image: none;
+    background-color: var(--clr-bg);
+  }
+}
+
+html.light-mode body::before {
+  background: var(--clr-bg);
+}
+
+html.light-mode .lesson-terminal {
+  background: var(--clr-surface-2);
+}
+
+/* Light mode CodeMirror */
+html.light-mode .CodeMirror {
+  background: #F0EFE8 !important;
+  color: #1C1B18 !important;
+}
+html.light-mode .CodeMirror-gutters {
+  background: #E6E5DE !important;
+  border-right: 1px solid #D6D5CE !important;
+}
+html.light-mode .CodeMirror-linenumber  { color: #B8B7B0 !important; }
+html.light-mode .CodeMirror-cursor      { border-left: 2px solid #6B38C0 !important; }
+html.light-mode .CodeMirror-selected    { background: rgba(107,56,192,0.15) !important; }
+html.light-mode .CodeMirror-activeline-background { background: rgba(107,56,192,0.04) !important; }
+html.light-mode .CodeMirror-activeline .CodeMirror-gutter-elt { color: #6B38C0 !important; }
+html.light-mode .CodeMirror-matchingbracket {
+  background: rgba(107,56,192,0.25) !important;
+  color: #1C1B18 !important;
+  outline: none !important;
+}
+
+/* Light mode syntax */
+html.light-mode .cm-keyword    { color: #B5006E !important; }
+html.light-mode .cm-operator   { color: #B5006E !important; }
+html.light-mode .cm-atom       { color: #B5006E !important; }
+html.light-mode .cm-builtin    { color: #B5006E !important; }
+html.light-mode .cm-string     { color: #0C7A8A !important; }
+html.light-mode .cm-string-2   { color: #0C7A8A !important; }
+html.light-mode .cm-def        { color: #0C7A8A !important; }
+html.light-mode .cm-number     { color: #A85800 !important; }
+html.light-mode .cm-variable   { color: #6B38C0 !important; }
+html.light-mode .cm-variable-2 { color: #6B38C0 !important; }
+html.light-mode .cm-property   { color: #6B38C0 !important; }
+html.light-mode .cm-comment    { color: #999890 !important; font-style: italic !important; }
+html.light-mode .cm-punctuation{ color: #68675F !important; }
+html.light-mode .cm-bracket    { color: #68675F !important; }
+html.light-mode .cm-meta       { color: #B5006E !important; }

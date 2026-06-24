@@ -26,7 +26,7 @@ class LessonProgressAdmin(admin.ModelAdmin):
 class AssignmentAdmin(admin.ModelAdmin):
     list_display = ['title', 'course', 'order']
     prepopulated_fields = {'slug': ('title',)}
-    fields = ['course', 'title', 'slug', 'description', 'instructions', 'buggy_code', 'expected_output', 'order']
+    fields = ['course', 'title', 'slug', 'description', 'instructions', 'buggy_code', 'expected_output', 'test_inputs', 'order']
 
 @admin.register(AssignmentSubmission)
 class AssignmentSubmissionAdmin(admin.ModelAdmin):
