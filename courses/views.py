@@ -150,8 +150,8 @@ def submit_assignment(request, course_slug, assignment_slug):
         return JsonResponse({'error': 'Complete all lessons first'}, status=403)
 
     code = request.POST.get('code', '')
-    output = request.POST.get('output', '').strip()
-    expected = assignment.expected_output.strip()
+    output = request.POST.get('output', '').strip().replace('\r\n', '\n').replace('\r', '\n')
+    expected = assignment.expected_output.strip().replace('\r\n', '\n').replace('\r', '\n')
 
     passed = output == expected
 
