@@ -16,8 +16,11 @@ class Command(BaseCommand):
             self.stdout.write('Skipping superuser creation: DJANGO_SUPERUSER_USERNAME and DJANGO_SUPERUSER_PASSWORD are not set.')
             return
 
-        if not User.objects.filter(username=username).exists():
-            User.objects.create_superuser(username=username, email=email, password=password)
-            self.stdout.write(self.style.SUCCESS(f'Superuser "{username}" created.'))
-        else:
-            self.stdout.write(f'Superuser "{username}" already exists, skipping.')
+        user, created = User.objects.get_or_create(username=username, defaults={'email': email})
+        if created:
+            user.is_staff = True
+            user.is_superuser = True
+        user.set_password(password)
+        user.save()
+        action = 'created' if created else 'updated'
+        self.stdout.write(self.style.SUCCESS(f'Superuser "{username}" {action}.'))
