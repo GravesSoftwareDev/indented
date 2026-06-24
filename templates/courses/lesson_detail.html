@@ -43,7 +43,7 @@
       <div class="question-block" id="question-{{ question.id }}">
         <p style="margin-bottom: 0.75rem; font-size: 0.9rem;">
           <span style="color: var(--clr-purple); font-family: var(--font-mono);">Q{{ forloop.counter }}.</span>
-          {{ question.question }}
+          {{ question.question|render_markdown }}
         </p>
         <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
           <textarea
