@@ -501,8 +501,8 @@ main:has(.lesson-layout) {
 }
 
 .lesson-right {
-  width: 460px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
