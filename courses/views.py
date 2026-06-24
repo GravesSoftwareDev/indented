@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
-from .models import Course, Lesson, LessonProgress, LessonQuestion
+from .models import Course, Lesson, LessonProgress, LessonQuestion, Assignment, AssignmentSubmission
 
 @login_required
 def course_list(request):
@@ -26,6 +26,16 @@ def course_detail(request, slug):
     completed_count = len(completed_ids)
     progress_pct = int((completed_count / total) * 100) if total > 0 else 0
 
+    assignments = course.assignments.all()
+    passed_assignment_ids = set(
+        AssignmentSubmission.objects.filter(
+            user=request.user,
+            assignment__in=assignments,
+            passed=True,
+        ).values_list('assignment_id', flat=True)
+    )
+    assignments_locked = completed_count < total
+
     return render(request, 'courses/course_detail.html', {
         'course': course,
         'lessons': lessons,
@@ -33,6 +43,9 @@ def course_detail(request, slug):
         'completed_count': completed_count,
         'total': total,
         'progress_pct': progress_pct,
+        'assignments': assignments,
+        'passed_assignment_ids': passed_assignment_ids,
+        'assignments_locked': assignments_locked,
     })
 
 @login_required
@@ -91,4 +104,65 @@ def check_answer(request, question_id):
     return JsonResponse({
         'correct': correct,
         'expected': expected if not correct else None,
+    })
+
+
+def _all_lessons_complete(user, course):
+    total = course.lessons.count()
+    if total == 0:
+        return True
+    completed = LessonProgress.objects.filter(
+        user=user, lesson__course=course, completed=True
+    ).count()
+    return completed >= total
+
+
+@login_required
+def assignment_detail(request, course_slug, assignment_slug):
+    course = get_object_or_404(Course, slug=course_slug)
+    assignment = get_object_or_404(Assignment, slug=assignment_slug, course=course)
+
+    if not _all_lessons_complete(request.user, course):
+        return redirect('course_detail', slug=course_slug)
+
+    passed = AssignmentSubmission.objects.filter(
+        user=request.user,
+        assignment=assignment,
+        passed=True,
+    ).exists()
+
+    return render(request, 'courses/assignment_detail.html', {
+        'course': course,
+        'assignment': assignment,
+        'passed': passed,
+    })
+
+
+@login_required
+def submit_assignment(request, course_slug, assignment_slug):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    course = get_object_or_404(Course, slug=course_slug)
+    assignment = get_object_or_404(Assignment, slug=assignment_slug, course=course)
+
+    if not _all_lessons_complete(request.user, course):
+        return JsonResponse({'error': 'Complete all lessons first'}, status=403)
+
+    code = request.POST.get('code', '')
+    output = request.POST.get('output', '').strip()
+    expected = assignment.expected_output.strip()
+
+    passed = output == expected
+
+    AssignmentSubmission.objects.create(
+        user=request.user,
+        assignment=assignment,
+        code=code,
+        passed=passed,
+    )
+
+    return JsonResponse({
+        'passed': passed,
+        'expected': expected if not passed else None,
     })

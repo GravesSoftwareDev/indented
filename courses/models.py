@@ -66,3 +66,35 @@ class LessonQuestion(models.Model):
 
     def get_choices(self):
         return [c.strip() for c in self.choices.splitlines() if c.strip()]
+
+
+class Assignment(models.Model):
+    course          = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='assignments')
+    title           = models.CharField(max_length=200)
+    slug            = models.SlugField()
+    description     = models.TextField(blank=True, default='')
+    instructions    = models.TextField()
+    buggy_code      = models.TextField()
+    expected_output = models.TextField()
+    order           = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+        unique_together = ['course', 'slug']
+
+    def __str__(self):
+        return f"{self.course.title} — {self.title}"
+
+
+class AssignmentSubmission(models.Model):
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, related_name='assignment_submissions')
+    assignment   = models.ForeignKey(Assignment, on_delete=models.CASCADE, related_name='submissions')
+    code         = models.TextField()
+    passed       = models.BooleanField(default=False)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-submitted_at']
+
+    def __str__(self):
+        return f"{self.user.username} — {self.assignment.title} — {'✓' if self.passed else '✗'}"

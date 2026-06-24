@@ -39,5 +39,35 @@
   {% empty %}
     <div class="alert alert--info">No lessons in this course yet.</div>
   {% endfor %}
+
+  {% if assignments %}
+  <div style="display: flex; align-items: baseline; gap: 1rem; margin: 2rem 0 0.75rem;">
+    <p class="section-label" style="margin: 0;">assignments</p>
+    {% if assignments_locked %}
+      <span class="text-mono text-muted" style="font-size: 0.78rem;">// complete all lessons to unlock</span>
+    {% endif %}
+  </div>
+  {% for assignment in assignments %}
+    {% if assignments_locked %}
+      <div class="card" style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; opacity: 0.45; cursor: not-allowed;">
+        <span>{{ assignment.title }}</span>
+        <span class="badge" style="background: var(--clr-surface-2); color: var(--clr-muted); border: 1px solid var(--clr-border);">locked</span>
+      </div>
+    {% else %}
+      <a href="{% url 'assignment_detail' course.slug assignment.slug %}" style="text-decoration: none;">
+        <div class="card" style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+          <span>{{ assignment.title }}</span>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            {% if assignment.id in passed_assignment_ids %}
+              <span class="badge badge--success">✓ done</span>
+            {% else %}
+              <span class="badge badge--purple">assignment</span>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+    {% endif %}
+  {% endfor %}
+  {% endif %}
 </div>
 {% endblock %}

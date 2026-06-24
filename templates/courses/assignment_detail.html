@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+{% load markdown_extras %}
+
+{% block title %}{{ assignment.title }} — Indented{% endblock %}
+
+{% block content %}
+<div class="lesson-layout">
+
+  <!-- Left column -->
+  <div class="lesson-left">
+
+    <div class="card lesson-text-card">
+      <p class="text-mono text-muted" style="margin-bottom: 0.5rem;">
+        <a href="{% url 'course_detail' course.slug %}">← {{ course.title }}</a>
+      </p>
+      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <h1 style="margin: 0;">{{ assignment.title }}</h1>
+        <span class="badge badge--purple" style="font-size: 0.75rem;">assignment</span>
+      </div>
+
+      {% if assignment.description %}
+        <div class="lesson-content" style="margin-bottom: 1.5rem;">
+          {{ assignment.description|render_markdown }}
+        </div>
+      {% endif %}
+
+      <p class="section-label" style="margin-bottom: 0.75rem;">instructions</p>
+      <div class="lesson-content">
+        {{ assignment.instructions|render_markdown }}
+      </div>
+    </div>
+
+    <!-- Submit card -->
+    <div class="card" style="margin-top: 1rem;">
+      <p class="section-label" style="margin-bottom: 1rem;">submit your solution</p>
+      <p style="font-size: 0.85rem; color: var(--clr-muted); font-family: var(--font-mono); margin-bottom: 1rem;">
+        // run your code, then click submit to check your output against the expected result.
+      </p>
+
+      {% if passed %}
+        <span class="badge badge--success" style="font-size: 0.85rem; padding: 0.4em 0.8em; display: inline-block; margin-bottom: 1rem;">
+          ✓ completed
+        </span>
+        <br>
+      {% endif %}
+
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button
+          id="submit-btn"
+          class="btn btn--accent"
+          onclick="submitAssignment()"
+          {% if passed %}style="opacity: 0.6;"{% endif %}
+        >[ submit ]</button>
+        {% if passed %}
+          <span style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--clr-muted);">// re-submit to try again</span>
+        {% endif %}
+      </div>
+
+      <div id="submit-result" style="margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.85rem; min-height: 1.2rem;"></div>
+    </div>
+
+  </div>
+
+  <!-- Right column: sticky sandbox -->
+  <div class="lesson-right">
+    <div class="card" style="height: 100%; display: flex; flex-direction: column; padding: 0; overflow: hidden;">
+
+      <div class="sandbox-header">
+        <span class="section-label" style="margin-bottom: 0;">editor</span>
+        <span id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--clr-muted);"></span>
+      </div>
+
+      <div style="border-bottom: 1px solid var(--clr-border); flex-shrink: 0;">
+        <div id="editor"></div>
+      </div>
+
+      <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.6rem; align-items: center; flex-shrink: 0; background: var(--clr-surface);">
+        <button id="run-btn" class="btn btn--primary" style="padding: 0.35rem 1rem;" onclick="runCode()">[ run ]</button>
+        <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="clearTerminal()">[ clear ]</button>
+        <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="copyOutput()" id="copy-btn">[ copy output ]</button>
+      </div>
+
+      <div id="terminal" class="lesson-terminal">
+        <span style="color: var(--clr-muted)">// output will appear here</span>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+
+<script>
+  const buggyCode = `{{ assignment.buggy_code|escapejs }}`;
+
+  const cmEditor = CodeMirror(document.getElementById('editor'), {
+    value: buggyCode,
+    mode: 'python',
+    theme: 'default',
+    lineNumbers: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    styleActiveLine: true,
+    indentUnit: 4,
+    tabSize: 4,
+    indentWithTabs: false,
+    extraKeys: { Tab: (cm) => cm.execCommand('insertSoftTab') },
+  });
+
+  window.getEditorCode = () => cmEditor.getValue();
+
+  // --- Copy terminal output ---
+  const terminal = document.getElementById('terminal');
+
+  function copyOutput() {
+    const text = terminal.innerText;
+    if (!text.trim() || text.includes('// output will appear here')) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-btn');
+      const original = btn.textContent;
+      btn.textContent = '[ copied! ]';
+      btn.style.color = '#4ADE80';
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.style.color = '';
+      }, 2000);
+    });
+  }
+
+  // --- Submit assignment ---
+  function submitAssignment() {
+    const output = terminal.innerText.trim();
+    const resultEl = document.getElementById('submit-result');
+
+    if (!output || output.includes('// output will appear here')) {
+      resultEl.style.color = 'var(--clr-muted)';
+      resultEl.textContent = '# run your code first';
+      return;
+    }
+
+    const csrfToken = document.cookie.split(';')
+      .find(c => c.trim().startsWith('csrftoken='))
+      ?.split('=')[1];
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.textContent = '[ submitting... ]';
+
+    fetch('{% url "submit_assignment" course.slug assignment.slug %}', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': csrfToken,
+      },
+      body: `code=${encodeURIComponent(window.getEditorCode())}&output=${encodeURIComponent(output)}`,
+    })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = '[ submit ]';
+      if (data.passed) {
+        resultEl.style.color = '#4ADE80';
+        resultEl.textContent = '✓ correct! assignment complete.';
+        const badge = document.querySelector('.badge--success');
+        if (!badge) {
+          const newBadge = document.createElement('span');
+          newBadge.className = 'badge badge--success';
+          newBadge.style.cssText = 'font-size: 0.85rem; padding: 0.4em 0.8em; display: inline-block; margin-bottom: 1rem;';
+          newBadge.textContent = '✓ completed';
+          btn.parentElement.parentElement.insertBefore(newBadge, btn.parentElement.previousElementSibling);
+        }
+      } else {
+        resultEl.style.color = '#F87171';
+        resultEl.textContent = `✗ not quite. expected output:\n${data.expected}`;
+        resultEl.style.whiteSpace = 'pre-wrap';
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = '[ submit ]';
+      resultEl.style.color = 'var(--clr-muted)';
+      resultEl.textContent = '# something went wrong, try again';
+    });
+  }
+</script>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+  let pyodide = null;
+  let isRunning = false;
+
+  const status = document.getElementById('status');
+  const runBtn = document.getElementById('run-btn');
+
+  status.textContent = 'loading...';
+  runBtn.disabled = true;
+
+  function termWrite(text, color) {
+    const span = document.createElement('span');
+    span.style.color = color || '#E8E6E1';
+    span.textContent = text;
+    terminal.appendChild(span);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function clearTerminal() { terminal.innerHTML = ''; }
+
+  function requestInput(prompt, history) {
+    return new Promise((resolve) => {
+      clearTerminal();
+      for (const entry of history) {
+        termWrite(entry.prompt, '#E8E6E1');
+        termWrite(entry.answer + '\n', '#B97EF5');
+      }
+      if (prompt) termWrite(prompt, '#E8E6E1');
+      const cursor = document.createElement('input');
+      cursor.type = 'text';
+      cursor.autocomplete = 'off';
+      cursor.spellcheck = false;
+      cursor.style.cssText = `
+        background: transparent; border: none;
+        border-bottom: 1px solid #B97EF5;
+        color: #B97EF5; font-family: 'Courier New', monospace;
+        font-size: 0.9rem; outline: none; width: 200px; padding: 0 2px;
+      `;
+      terminal.appendChild(cursor);
+      terminal.scrollTop = terminal.scrollHeight;
+      cursor.focus();
+      cursor.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const value = cursor.value;
+          cursor.remove();
+          termWrite(value + '\n', '#B97EF5');
+          resolve(value);
+        }
+      });
+    });
+  }
+
+  async function loadPyodide_() {
+    pyodide = await loadPyodide();
+    pyodide.runPython(`
+import sys, io, builtins, js
+
+class InputNeeded(Exception):
+    pass
+
+def _make_input_fn(responses):
+    call_index = [0]
+    def _input(prompt=''):
+        idx = call_index[0]
+        if idx < len(responses):
+            val = responses[idx]
+            call_index[0] += 1
+            return str(val)
+        js.window.__pending_prompt__ = str(prompt)
+        raise InputNeeded(str(prompt))
+    return _input
+    `);
+    status.textContent = 'ready';
+    runBtn.disabled = false;
+    cmEditor.refresh();
+  }
+
+  async function runCode() {
+    if (!pyodide || isRunning) return;
+    isRunning = true;
+    runBtn.disabled = true;
+    status.textContent = 'running...';
+    clearTerminal();
+    const code = window.getEditorCode ? window.getEditorCode() : '';
+    const history = [];
+    await executeWithInputs(code, history);
+    isRunning = false;
+    runBtn.disabled = false;
+    status.textContent = 'done.';
+  }
+
+  async function executeWithInputs(code, history) {
+    const MAX = 20;
+    const responses = history.map(h => h.answer);
+    for (let attempt = 0; attempt <= MAX; attempt++) {
+      pyodide.globals.set('__current_responses__', pyodide.toPy(responses));
+      try {
+        pyodide.runPython(`
+import sys, io, builtins
+sys.stdout = io.StringIO()
+sys.stderr = io.StringIO()
+builtins.input = _make_input_fn(list(__current_responses__))
+        `);
+        pyodide.runPython(code);
+        clearTerminal();
+        for (const entry of history) {
+          termWrite(entry.prompt, '#E8E6E1');
+          termWrite(entry.answer + '\n', '#B97EF5');
+        }
+        const out = pyodide.runPython('sys.stdout.getvalue()');
+        const err = pyodide.runPython('sys.stderr.getvalue()');
+        if (out) termWrite(out, '#E8E6E1');
+        if (err) termWrite(err, '#F87171');
+        return;
+      } catch (e) {
+        const isInputNeeded = e.type === 'InputNeeded' || (e.message && e.message.includes('InputNeeded'));
+        if (isInputNeeded) {
+          const prompt = window.__pending_prompt__ || '';
+          window.__pending_prompt__ = '';
+          const answer = await requestInput(prompt, history);
+          history.push({ prompt, answer });
+          responses.push(answer);
+        } else {
+          clearTerminal();
+          for (const entry of history) {
+            termWrite(entry.prompt, '#E8E6E1');
+            termWrite(entry.answer + '\n', '#B97EF5');
+          }
+          let errMsg = '';
+          try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
+          catch (_) { errMsg = e.message || 'Unknown error'; }
+          termWrite(errMsg, '#F87171');
+          return;
+        }
+      }
+    }
+    termWrite('Error: exceeded maximum input() calls.\n', '#F87171');
+  }
+
+  loadPyodide_();
+</script>
+{% endblock %}
