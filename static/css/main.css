@@ -592,8 +592,7 @@ html.light-mode {
 
 @media (min-width: 1100px) {
   html.light-mode body {
-    background-image: none;
-    background-color: var(--clr-bg);
+    background-image: url('../terminal_bg_light.png');
   }
 }
 
