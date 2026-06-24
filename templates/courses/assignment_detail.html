@@ -4,87 +4,79 @@
 {% block title %}{{ assignment.title }} — Indented{% endblock %}
 
 {% block content %}
-<div class="lesson-layout">
+<div class="container" style="max-width: 860px;">
 
-  <!-- Left column -->
-  <div class="lesson-left">
-
-    <div class="card lesson-text-card">
-      <p class="text-mono text-muted" style="margin-bottom: 0.5rem;">
-        <a href="{% url 'course_detail' course.slug %}">← {{ course.title }}</a>
-      </p>
-      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-        <h1 style="margin: 0;">{{ assignment.title }}</h1>
-        <span class="badge badge--purple" style="font-size: 0.75rem;">assignment</span>
-      </div>
-
-      {% if assignment.description %}
-        <div class="lesson-content" style="margin-bottom: 1.5rem;">
-          {{ assignment.description|render_markdown }}
-        </div>
-      {% endif %}
-
-      <p class="section-label" style="margin-bottom: 0.75rem;">instructions</p>
-      <div class="lesson-content">
-        {{ assignment.instructions|render_markdown }}
-      </div>
+  <!-- Info card -->
+  <div class="card">
+    <p class="text-mono text-muted" style="margin-bottom: 0.5rem;">
+      <a href="{% url 'course_detail' course.slug %}">← {{ course.title }}</a>
+    </p>
+    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <h1 style="margin: 0;">{{ assignment.title }}</h1>
+      <span class="badge badge--purple" style="font-size: 0.75rem;">assignment</span>
     </div>
 
-    <!-- Submit card -->
-    <div class="card" style="margin-top: 1rem;">
-      <p class="section-label" style="margin-bottom: 1rem;">submit your solution</p>
-      <p style="font-size: 0.85rem; color: var(--clr-muted); font-family: var(--font-mono); margin-bottom: 1rem;">
-        // run your code, then click submit to check your output against the expected result.
-      </p>
-
-      {% if passed %}
-        <span class="badge badge--success" style="font-size: 0.85rem; padding: 0.4em 0.8em; display: inline-block; margin-bottom: 1rem;">
-          ✓ completed
-        </span>
-        <br>
-      {% endif %}
-
-      <div style="display: flex; gap: 0.5rem; align-items: center;">
-        <button
-          id="submit-btn"
-          class="btn btn--accent"
-          onclick="submitAssignment()"
-          {% if passed %}style="opacity: 0.6;"{% endif %}
-        >[ submit ]</button>
-        {% if passed %}
-          <span style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--clr-muted);">// re-submit to try again</span>
-        {% endif %}
+    {% if assignment.description %}
+      <div class="lesson-content" style="margin-bottom: 1.5rem;">
+        {{ assignment.description|render_markdown }}
       </div>
+    {% endif %}
 
-      <div id="submit-result" style="margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.85rem; min-height: 1.2rem;"></div>
+    <p class="section-label" style="margin-bottom: 0.75rem;">instructions</p>
+    <div class="lesson-content">
+      {{ assignment.instructions|render_markdown }}
     </div>
-
   </div>
 
-  <!-- Right column: sticky sandbox -->
-  <div class="lesson-right">
-    <div class="card" style="height: 100%; display: flex; flex-direction: column; padding: 0; overflow: hidden;">
-
-      <div class="sandbox-header">
-        <span class="section-label" style="margin-bottom: 0;">editor</span>
-        <span id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--clr-muted);"></span>
-      </div>
-
-      <div style="border-bottom: 1px solid var(--clr-border); flex-shrink: 0;">
-        <div id="editor"></div>
-      </div>
-
-      <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.6rem; align-items: center; flex-shrink: 0; background: var(--clr-surface);">
-        <button id="run-btn" class="btn btn--primary" style="padding: 0.35rem 1rem;" onclick="runCode()">[ run ]</button>
-        <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="clearTerminal()">[ clear ]</button>
-        <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="copyOutput()" id="copy-btn">[ copy output ]</button>
-      </div>
-
-      <div id="terminal" class="lesson-terminal">
-        <span style="color: var(--clr-muted)">// output will appear here</span>
-      </div>
-
+  <!-- Editor + terminal card -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="sandbox-header">
+      <span class="section-label" style="margin-bottom: 0;">editor</span>
+      <span id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--clr-muted);"></span>
     </div>
+
+    <div style="border-bottom: 1px solid var(--clr-border);">
+      <div id="editor"></div>
+    </div>
+
+    <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.6rem; align-items: center; background: var(--clr-surface);">
+      <button id="run-btn" class="btn btn--primary" style="padding: 0.35rem 1rem;" onclick="runCode()">[ run ]</button>
+      <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="clearTerminal()">[ clear ]</button>
+      <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="copyOutput()" id="copy-btn">[ copy output ]</button>
+    </div>
+
+    <div id="terminal" class="lesson-terminal" style="min-height: 160px; max-height: 320px; flex: none;">
+      <span style="color: var(--clr-muted)">// output will appear here</span>
+    </div>
+  </div>
+
+  <!-- Submit card -->
+  <div class="card">
+    <p class="section-label" style="margin-bottom: 1rem;">submit your solution</p>
+    <p style="font-size: 0.85rem; color: var(--clr-muted); font-family: var(--font-mono); margin-bottom: 1rem;">
+      // run your code, then click submit to check your output against the expected result.
+    </p>
+
+    {% if passed %}
+      <span class="badge badge--success" style="font-size: 0.85rem; padding: 0.4em 0.8em; display: inline-block; margin-bottom: 1rem;">
+        ✓ completed
+      </span>
+      <br>
+    {% endif %}
+
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <button
+        id="submit-btn"
+        class="btn btn--accent"
+        onclick="submitAssignment()"
+        {% if passed %}style="opacity: 0.6;"{% endif %}
+      >[ submit ]</button>
+      {% if passed %}
+        <span style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--clr-muted);">// re-submit to try again</span>
+      {% endif %}
+    </div>
+
+    <div id="submit-result" style="margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.85rem; min-height: 1.2rem;"></div>
   </div>
 
 </div>
