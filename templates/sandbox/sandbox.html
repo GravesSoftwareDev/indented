@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}Sandbox — Indented{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+  <p class="section-label">playground</p>
+  <h1 style="margin-bottom: 0.25rem;">Python <span>Sandbox</span></h1>
+  <p class="text-muted" style="margin-bottom: 2rem;">
+    Write and run Python code directly in your browser.
+  </p>
+
+  <div id="loading-overlay" style="
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-left: 3px solid var(--clr-purple);
+    border-radius: var(--radius-lg);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    margin-bottom: 1rem;
+  ">
+    <p style="font-family: var(--font-mono); color: var(--clr-purple); font-size: 1rem; margin-bottom: 0.5rem;">
+      // loading python runtime
+    </p>
+    <p id="loading-msg" style="font-family: var(--font-mono); color: var(--clr-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+      downloading pyodide — this only happens once...
+    </p>
+    <div style="display: flex; justify-content: center; gap: 0.5rem;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--clr-purple); animation: pulse 1.2s infinite 0s;"></div>
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--clr-purple); animation: pulse 1.2s infinite 0.4s;"></div>
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--clr-purple); animation: pulse 1.2s infinite 0.8s;"></div>
+    </div>
+  </div>
+
+  <div id="sandbox-ui" style="display: none;">
+    <div class="card card--accent" style="padding: 0; overflow: hidden;">
+
+      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--clr-border);">
+        <label style="margin-bottom: 0.5rem; display: block;">code</label>
+        <div id="editor" style="border: 1px solid #2A2A2A; border-radius: 6px; overflow: hidden;"></div>
+      </div>
+
+      <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.75rem; align-items: center;">
+        <button id="run-btn" class="btn btn--primary" onclick="runCode()">[ run ]</button>
+        <button class="btn btn--ghost" onclick="clearTerminal()">[ clear ]</button>
+        <span id="status" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--clr-muted);"></span>
+      </div>
+
+      <div id="terminal" style="
+        background: var(--clr-bg);
+        padding: 1rem 1.25rem;
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+        min-height: 200px;
+        max-height: 400px;
+        overflow-y: auto;
+        line-height: 1.6;
+        white-space: pre-wrap;
+      "><span style="color: var(--clr-muted)">// output will appear here</span></div>
+
+    </div>
+    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.75rem;">
+      # runs in your browser via pyodide — no server needed
+    </p>
+  </div>
+</div>
+
+<style>
+@keyframes pulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%       { opacity: 1;   transform: scale(1.2); }
+}
+
+/* CodeMirror base overrides */
+.cm-editor {
+  background: #0D0D0D !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  font-size: 0.9rem !important;
+}
+.cm-editor.cm-focused { outline: none !important; box-shadow: 0 0 0 3px rgba(185,126,245,0.15) !important; }
+.cm-scroller { min-height: 300px !important; max-height: 500px !important; overflow: auto !important; }
+.cm-content  { padding: 0.75rem 0 !important; caret-color: #B97EF5 !important; }
+.cm-gutters  { background: #111111 !important; border-right: 1px solid #2A2A2A !important; color: #444441 !important; }
+.cm-activeLineGutter { background: #1A1A1A !important; color: #B97EF5 !important; }
+.cm-activeLine { background: rgba(185,126,245,0.05) !important; }
+.cm-cursor   { border-left-color: #B97EF5 !important; }
+.cm-focused .cm-selectionBackground,
+.cm-selectionBackground { background: rgba(185,126,245,0.2) !important; }
+.cm-matchingBracket { background: rgba(185,126,245,0.3) !important; color: #fff !important; }
+
+/* Syntax colors via CodeMirror 5-style CSS classes that CM6 also emits */
+.cm-keyword   { color: #F57EB9 !important; }
+.cm-operator  { color: #F57EB9 !important; }
+.cm-atom      { color: #F57EB9 !important; }
+.cm-builtin   { color: #F57EB9 !important; }
+.cm-string    { color: #7EE8F5 !important; }
+.cm-string-2  { color: #7EE8F5 !important; }
+.cm-def       { color: #7EE8F5 !important; }
+.cm-number    { color: #F5C97E !important; }
+.cm-variable  { color: #B97EF5 !important; }
+.cm-variable-2 { color: #B97EF5 !important; }
+.cm-property  { color: #B97EF5 !important; }
+.cm-comment   { color: #4A4A47 !important; font-style: italic !important; }
+.cm-punctuation { color: #888780 !important; }
+.cm-bracket   { color: #888780 !important; }
+.cm-tag       { color: #7EE8F5 !important; }
+.cm-meta      { color: #F57EB9 !important; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- CodeMirror 5 — stable, no bundler needed, works reliably from CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
+
+<script>
+  // Init CodeMirror 5
+  const cmEditor = CodeMirror(document.getElementById('editor'), {
+    value: 'print("Hello, world!")',
+    mode: 'python',
+    theme: 'default',
+    lineNumbers: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    styleActiveLine: true,
+    indentUnit: 4,
+    tabSize: 4,
+    indentWithTabs: false,
+    extraKeys: {
+      Tab: (cm) => cm.execCommand('insertSoftTab'),
+    },
+  });
+
+  window.getEditorCode = () => cmEditor.getValue();
+</script>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+  let pyodide = null;
+  let isRunning = false;
+
+  const terminal   = document.getElementById('terminal');
+  const status     = document.getElementById('status');
+  const runBtn     = document.getElementById('run-btn');
+  const loadingEl  = document.getElementById('loading-overlay');
+  const loadingMsg = document.getElementById('loading-msg');
+  const sandboxUI  = document.getElementById('sandbox-ui');
+
+  const loadingMessages = [
+    'downloading pyodide — this only happens once...',
+    'unpacking python runtime...',
+    'setting up the environment...',
+    'almost ready...',
+  ];
+  let msgIndex = 0;
+  const msgInterval = setInterval(() => {
+    msgIndex = (msgIndex + 1) % loadingMessages.length;
+    loadingMsg.textContent = loadingMessages[msgIndex];
+  }, 3000);
+
+  function termWrite(text, color) {
+    const span = document.createElement('span');
+    span.style.color = color || '#E8E6E1';
+    span.textContent = text;
+    terminal.appendChild(span);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function clearTerminal() {
+    terminal.innerHTML = '';
+  }
+
+  function requestInput(prompt, history) {
+    return new Promise((resolve) => {
+      clearTerminal();
+      for (const entry of history) {
+        termWrite(entry.prompt, '#E8E6E1');
+        termWrite(entry.answer + '\n', '#B97EF5');
+      }
+      if (prompt) termWrite(prompt, '#E8E6E1');
+
+      const cursor = document.createElement('input');
+      cursor.type = 'text';
+      cursor.autocomplete = 'off';
+      cursor.spellcheck = false;
+      cursor.style.cssText = `
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid #B97EF5;
+        color: #B97EF5;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        outline: none;
+        width: 200px;
+        padding: 0 2px;
+      `;
+      terminal.appendChild(cursor);
+      terminal.scrollTop = terminal.scrollHeight;
+      cursor.focus();
+
+      cursor.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const value = cursor.value;
+          cursor.remove();
+          termWrite(value + '\n', '#B97EF5');
+          resolve(value);
+        }
+      });
+    });
+  }
+
+  async function loadPyodide_() {
+    pyodide = await loadPyodide();
+    pyodide.runPython(`
+import sys, io, builtins, js
+
+class InputNeeded(Exception):
+    pass
+
+def _make_input_fn(responses):
+    call_index = [0]
+    def _input(prompt=''):
+        idx = call_index[0]
+        if idx < len(responses):
+            val = responses[idx]
+            call_index[0] += 1
+            return str(val)
+        js.window.__pending_prompt__ = str(prompt)
+        raise InputNeeded(str(prompt))
+    return _input
+    `);
+    clearInterval(msgInterval);
+    loadingEl.style.display = 'none';
+    sandboxUI.style.display = 'block';
+    // Refresh CodeMirror after display change
+    setTimeout(() => cmEditor.refresh(), 50);
+  }
+
+  async function runCode() {
+    if (!pyodide || isRunning) return;
+    isRunning = true;
+    runBtn.disabled = true;
+    status.textContent = 'running...';
+    clearTerminal();
+
+    const code = window.getEditorCode ? window.getEditorCode() : '';
+    const history = [];
+    await executeWithInputs(code, history);
+
+    isRunning = false;
+    runBtn.disabled = false;
+    status.textContent = 'done.';
+  }
+
+  async function executeWithInputs(code, history) {
+    const MAX = 20;
+    const responses = history.map(h => h.answer);
+
+    for (let attempt = 0; attempt <= MAX; attempt++) {
+      pyodide.globals.set('__current_responses__', pyodide.toPy(responses));
+
+      try {
+        pyodide.runPython(`
+import sys, io, builtins
+sys.stdout = io.StringIO()
+sys.stderr = io.StringIO()
+builtins.input = _make_input_fn(list(__current_responses__))
+        `);
+        pyodide.runPython(code);
+
+        clearTerminal();
+        for (const entry of history) {
+          termWrite(entry.prompt, '#E8E6E1');
+          termWrite(entry.answer + '\n', '#B97EF5');
+        }
+        const out = pyodide.runPython('sys.stdout.getvalue()');
+        const err = pyodide.runPython('sys.stderr.getvalue()');
+        if (out) termWrite(out, '#E8E6E1');
+        if (err) termWrite(err, '#F87171');
+        return;
+
+      } catch (e) {
+        const isInputNeeded = e.type === 'InputNeeded' ||
+          (e.message && e.message.includes('InputNeeded'));
+
+        if (isInputNeeded) {
+          const prompt = window.__pending_prompt__ || '';
+          window.__pending_prompt__ = '';
+          const answer = await requestInput(prompt, history);
+          history.push({ prompt, answer });
+          responses.push(answer);
+        } else {
+          clearTerminal();
+          for (const entry of history) {
+            termWrite(entry.prompt, '#E8E6E1');
+            termWrite(entry.answer + '\n', '#B97EF5');
+          }
+          let errMsg = '';
+          try {
+            errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error';
+          } catch (_) { errMsg = e.message || 'Unknown error'; }
+          termWrite(errMsg, '#F87171');
+          return;
+        }
+      }
+    }
+    termWrite('Error: exceeded maximum input() calls.\n', '#F87171');
+  }
+
+  loadPyodide_();
+</script>
+{% endblock %}

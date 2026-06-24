@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}{{ course.title }} — Indented{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+  <p class="text-mono text-muted" style="margin-bottom: 0.5rem;">
+    <a href="{% url 'course_list' %}">← Courses</a>
+  </p>
+  <h1 style="margin-bottom: 0.25rem;">{{ course.title }}</h1>
+  <p class="text-muted" style="margin-bottom: 1.5rem;">{{ course.description }}</p>
+
+  <!-- Progress bar -->
+  {% if total > 0 %}
+  <div style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+      <span class="text-mono" style="font-size: 0.8rem; color: var(--clr-muted);">// progress</span>
+      <span class="text-mono" style="font-size: 0.8rem; color: var(--clr-purple);">{{ completed_count }} / {{ total }}</span>
+    </div>
+    <div style="background: var(--clr-surface-2); border-radius: 999px; height: 6px; overflow: hidden;">
+      <div style="background: var(--clr-purple); height: 100%; width: {{ progress_pct }}%; transition: width 0.3s ease; border-radius: 999px;"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% for lesson in lessons %}
+    <a href="{% url 'lesson_detail' course.slug lesson.slug %}" style="text-decoration: none;">
+      <div class="card" style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+        <span>{{ lesson.title }}</span>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          {% if lesson.id in completed_ids %}
+            <span class="badge badge--success">✓ done</span>
+          {% else %}
+            <span class="badge badge--purple">Lesson {{ lesson.order }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+  {% empty %}
+    <div class="alert alert--info">No lessons in this course yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}

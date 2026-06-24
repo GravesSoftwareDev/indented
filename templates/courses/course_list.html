@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Courses — Indented{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1 style="margin-bottom: 0.25rem;">Courses</h1>
+  <p class="text-muted text-mono" style="margin-bottom: 2rem;">
+    Choose a course to get started.
+  </p>
+
+  {% for course in courses %}
+    <a href="{% url 'course_detail' course.slug %}" style="text-decoration: none;">
+      <div class="card card--accent" style="margin-bottom: 1rem;">
+        <h2 style="margin-bottom: 0.25rem;">{{ course.title }}</h2>
+        <p class="text-muted" style="margin-bottom: 0;">{{ course.description }}</p>
+      </div>
+    </a>
+  {% empty %}
+    <div class="alert alert--info">No courses available yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}
