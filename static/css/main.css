@@ -51,7 +51,7 @@ body {
 /* --- Terminal background (ultrawide only) --- */
 @media (min-width: 1100px) {
   body {
-    background-image: url('/static/terminal_bg.png');
+    background-image: url('../terminal_bg.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
