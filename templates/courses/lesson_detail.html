@@ -6,19 +6,20 @@
 {% block content %}
 <div class="lesson-layout">
 
-  <!-- Left: scrollable lesson content -->
+  <!-- Left column -->
   <div class="lesson-left">
-    <div class="lesson-left-card">
+
+    <!-- Lesson content card -->
+    <div class="card lesson-text-card">
       <p class="text-mono text-muted" style="margin-bottom: 0.5rem;">
         <a href="{% url 'course_detail' course.slug %}">← {{ course.title }}</a>
       </p>
       <h1 style="margin-bottom: 1.5rem;">{{ lesson.title }}</h1>
 
-      <div class="lesson-content">
+      <div class="lesson-content" id="lesson-content">
         {{ lesson.content|render_markdown }}
       </div>
 
-      <!-- Complete button -->
       <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--clr-border);">
         {% if progress.completed %}
           <span class="badge badge--success" style="font-size: 0.85rem; padding: 0.4em 0.8em;">
@@ -32,29 +33,72 @@
         {% endif %}
       </div>
     </div>
+
+    <!-- Questions card -->
+    {% if questions %}
+    <div class="card lesson-questions-card">
+      <p class="section-label" style="margin-bottom: 1rem;">check your understanding</p>
+
+      {% for question in questions %}
+      <div class="question-block" id="question-{{ question.id }}">
+        <p style="margin-bottom: 0.75rem; font-size: 0.9rem;">
+          <span style="color: var(--clr-purple); font-family: var(--font-mono);">Q{{ forloop.counter }}.</span>
+          {{ question.question }}
+        </p>
+        <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+          <textarea
+            id="answer-{{ question.id }}"
+            rows="2"
+            placeholder="paste your output here..."
+            style="
+              flex: 1;
+              font-family: var(--font-mono);
+              font-size: 0.85rem;
+              resize: vertical;
+              background: var(--clr-bg);
+              color: var(--clr-text);
+              border: 1px solid var(--clr-border);
+              border-radius: var(--radius-md);
+              padding: 0.5rem 0.75rem;
+              outline: none;
+            "
+          ></textarea>
+          <button
+            class="btn btn--primary"
+            style="padding: 0.4rem 0.9rem; flex-shrink: 0;"
+            onclick="checkAnswer({{ question.id }})"
+          >[ check ]</button>
+        </div>
+        <div id="result-{{ question.id }}" style="margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.82rem; min-height: 1.2rem;"></div>
+        {% if not forloop.last %}
+          <hr style="border: none; border-top: 1px solid var(--clr-border); margin: 1.25rem 0;">
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
   </div>
 
-  <!-- Right: sticky editor + terminal -->
+  <!-- Right column: sticky sandbox -->
   <div class="lesson-right">
-    <div class="lesson-sandbox">
+    <div class="card" style="height: 100%; display: flex; flex-direction: column; padding: 0; overflow: hidden;">
 
       <div class="sandbox-header">
         <span class="section-label" style="margin-bottom: 0;">try it</span>
         <span id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--clr-muted);"></span>
       </div>
 
-      <!-- Editor -->
-      <div style="border-bottom: 1px solid var(--clr-border);">
+      <div style="border-bottom: 1px solid var(--clr-border); flex-shrink: 0;">
         <div id="editor"></div>
       </div>
 
-      <!-- Controls -->
-      <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.6rem; align-items: center;">
+      <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.6rem; align-items: center; flex-shrink: 0; background: var(--clr-surface);">
         <button id="run-btn" class="btn btn--primary" style="padding: 0.35rem 1rem;" onclick="runCode()">[ run ]</button>
         <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="clearTerminal()">[ clear ]</button>
+        <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="copyOutput()" id="copy-btn">[ copy output ]</button>
       </div>
 
-      <!-- Terminal -->
       <div id="terminal" class="lesson-terminal">
         <span style="color: var(--clr-muted)">// output will appear here</span>
       </div>
@@ -87,12 +131,110 @@
     indentUnit: 4,
     tabSize: 4,
     indentWithTabs: false,
-    extraKeys: {
-      Tab: (cm) => cm.execCommand('insertSoftTab'),
-    },
+    extraKeys: { Tab: (cm) => cm.execCommand('insertSoftTab') },
   });
 
   window.getEditorCode = () => cmEditor.getValue();
+
+  // --- Inject copy buttons into all code blocks in lesson content ---
+  document.querySelectorAll('#lesson-content pre').forEach((pre) => {
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'relative';
+    pre.parentNode.insertBefore(wrapper, pre);
+    wrapper.appendChild(pre);
+
+    const btn = document.createElement('button');
+    btn.textContent = '[ copy ]';
+    btn.style.cssText = `
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: rgba(185,126,245,0.1);
+      color: #B97EF5;
+      border: 1px solid rgba(185,126,245,0.3);
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    `;
+    btn.addEventListener('mouseenter', () => btn.style.background = 'rgba(185,126,245,0.2)');
+    btn.addEventListener('mouseleave', () => btn.style.background = 'rgba(185,126,245,0.1)');
+    btn.addEventListener('click', () => {
+      const code = pre.querySelector('code') ? pre.querySelector('code').innerText : pre.innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = '[ copied! ]';
+        btn.style.color = '#4ADE80';
+        btn.style.borderColor = 'rgba(74,222,128,0.3)';
+        btn.style.background = 'rgba(74,222,128,0.1)';
+        setTimeout(() => {
+          btn.textContent = '[ copy ]';
+          btn.style.color = '#B97EF5';
+          btn.style.borderColor = 'rgba(185,126,245,0.3)';
+          btn.style.background = 'rgba(185,126,245,0.1)';
+        }, 2000);
+      });
+    });
+    wrapper.appendChild(btn);
+  });
+
+  // --- Copy terminal output ---
+  const terminal = document.getElementById('terminal');
+
+  function copyOutput() {
+    const text = terminal.innerText;
+    if (!text.trim() || text.includes('// output will appear here')) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-btn');
+      const original = btn.textContent;
+      btn.textContent = '[ copied! ]';
+      btn.style.color = '#4ADE80';
+      setTimeout(() => {
+        btn.textContent = original;
+        btn.style.color = '';
+      }, 2000);
+    });
+  }
+
+  // --- Answer checker ---
+  function checkAnswer(questionId) {
+    const userAnswer = document.getElementById(`answer-${questionId}`).value.trim();
+    const resultEl = document.getElementById(`result-${questionId}`);
+
+    if (!userAnswer) {
+      resultEl.style.color = 'var(--clr-muted)';
+      resultEl.textContent = '# paste your output first';
+      return;
+    }
+
+    const csrfToken = document.cookie.split(';')
+      .find(c => c.trim().startsWith('csrftoken='))
+      ?.split('=')[1];
+
+    fetch(`/courses/question/${questionId}/check/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': csrfToken,
+      },
+      body: `answer=${encodeURIComponent(userAnswer)}`,
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.correct) {
+        resultEl.style.color = '#4ADE80';
+        resultEl.textContent = '✓ correct!';
+      } else {
+        resultEl.style.color = '#F87171';
+        resultEl.textContent = `✗ not quite — expected: ${data.expected}`;
+      }
+    })
+    .catch(() => {
+      resultEl.style.color = 'var(--clr-muted)';
+      resultEl.textContent = '# something went wrong, try again';
+    });
+  }
 </script>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
@@ -100,9 +242,8 @@
   let pyodide = null;
   let isRunning = false;
 
-  const terminal = document.getElementById('terminal');
-  const status   = document.getElementById('status');
-  const runBtn   = document.getElementById('run-btn');
+  const status = document.getElementById('status');
+  const runBtn = document.getElementById('run-btn');
 
   status.textContent = 'loading...';
   runBtn.disabled = true;
@@ -115,9 +256,7 @@
     terminal.scrollTop = terminal.scrollHeight;
   }
 
-  function clearTerminal() {
-    terminal.innerHTML = '';
-  }
+  function clearTerminal() { terminal.innerHTML = ''; }
 
   function requestInput(prompt, history) {
     return new Promise((resolve) => {
@@ -127,26 +266,19 @@
         termWrite(entry.answer + '\n', '#B97EF5');
       }
       if (prompt) termWrite(prompt, '#E8E6E1');
-
       const cursor = document.createElement('input');
       cursor.type = 'text';
       cursor.autocomplete = 'off';
       cursor.spellcheck = false;
       cursor.style.cssText = `
-        background: transparent;
-        border: none;
+        background: transparent; border: none;
         border-bottom: 1px solid #B97EF5;
-        color: #B97EF5;
-        font-family: 'Courier New', monospace;
-        font-size: 0.9rem;
-        outline: none;
-        width: 200px;
-        padding: 0 2px;
+        color: #B97EF5; font-family: 'Courier New', monospace;
+        font-size: 0.9rem; outline: none; width: 200px; padding: 0 2px;
       `;
       terminal.appendChild(cursor);
       terminal.scrollTop = terminal.scrollHeight;
       cursor.focus();
-
       cursor.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           const value = cursor.value;
@@ -189,11 +321,9 @@ def _make_input_fn(responses):
     runBtn.disabled = true;
     status.textContent = 'running...';
     clearTerminal();
-
     const code = window.getEditorCode ? window.getEditorCode() : '';
     const history = [];
     await executeWithInputs(code, history);
-
     isRunning = false;
     runBtn.disabled = false;
     status.textContent = 'done.';
@@ -202,10 +332,8 @@ def _make_input_fn(responses):
   async function executeWithInputs(code, history) {
     const MAX = 20;
     const responses = history.map(h => h.answer);
-
     for (let attempt = 0; attempt <= MAX; attempt++) {
       pyodide.globals.set('__current_responses__', pyodide.toPy(responses));
-
       try {
         pyodide.runPython(`
 import sys, io, builtins
@@ -214,7 +342,6 @@ sys.stderr = io.StringIO()
 builtins.input = _make_input_fn(list(__current_responses__))
         `);
         pyodide.runPython(code);
-
         clearTerminal();
         for (const entry of history) {
           termWrite(entry.prompt, '#E8E6E1');
@@ -225,11 +352,8 @@ builtins.input = _make_input_fn(list(__current_responses__))
         if (out) termWrite(out, '#E8E6E1');
         if (err) termWrite(err, '#F87171');
         return;
-
       } catch (e) {
-        const isInputNeeded = e.type === 'InputNeeded' ||
-          (e.message && e.message.includes('InputNeeded'));
-
+        const isInputNeeded = e.type === 'InputNeeded' || (e.message && e.message.includes('InputNeeded'));
         if (isInputNeeded) {
           const prompt = window.__pending_prompt__ || '';
           window.__pending_prompt__ = '';
@@ -243,9 +367,8 @@ builtins.input = _make_input_fn(list(__current_responses__))
             termWrite(entry.answer + '\n', '#B97EF5');
           }
           let errMsg = '';
-          try {
-            errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error';
-          } catch (_) { errMsg = e.message || 'Unknown error'; }
+          try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
+          catch (_) { errMsg = e.message || 'Unknown error'; }
           termWrite(errMsg, '#F87171');
           return;
         }

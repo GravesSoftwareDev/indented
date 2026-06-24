@@ -41,3 +41,15 @@ class LessonProgress(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.lesson.title} Completed: {self.completed}"
+    
+class LessonQuestion(models.Model):
+    lesson          = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='questions')
+    question        = models.TextField()
+    expected_answer = models.TextField()
+    order           = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f"{self.lesson.title} — Q{self.order}"

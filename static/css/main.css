@@ -462,6 +462,10 @@ select:focus {
 .cm-meta      { color: #F57EB9 !important; }
 
 /* --- Lesson split layout --- */
+main:has(.lesson-layout) {
+  padding: 0 !important;
+}
+
 .lesson-layout {
   display: flex;
   gap: 0;
@@ -473,33 +477,35 @@ select:focus {
 
 .lesson-left {
   flex: 1;
-  padding: 1.5rem;
-  overflow-y: auto;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--clr-border);
 }
 
-.lesson-left-card {
-  background: var(--clr-surface);
-  border: 1px solid var(--clr-border);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  height: 100%;
+.lesson-text-card {
+  flex: 1;
   overflow-y: auto;
+  margin: 1.25rem 1.25rem 0.625rem 1.25rem;
+  min-height: 0;
+}
+
+.lesson-questions-card {
+  flex: 0 0 auto;
+  max-height: 40%;
+  overflow-y: auto;
+  margin: 0.625rem 1.25rem 1.25rem 1.25rem;
+  min-height: 120px;
 }
 
 .lesson-right {
   width: 460px;
   flex-shrink: 0;
-  border-left: 1px solid var(--clr-border);
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-}
-
-.lesson-sandbox {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
   overflow: hidden;
 }
 
@@ -522,15 +528,19 @@ select:focus {
   overflow-y: auto;
   line-height: 1.6;
   white-space: pre-wrap;
+  min-height: 0;
 }
 
-/* CodeMirror fills its container in lesson view */
 .lesson-right .CodeMirror {
-  height: 250px !important;
+  height: 220px !important;
   min-height: unset !important;
 }
 
-/* Mobile — stack vertically */
+.question-block textarea:focus {
+  border-color: var(--clr-purple) !important;
+  box-shadow: 0 0 0 3px rgba(185,126,245,0.1);
+}
+
 @media (max-width: 860px) {
   .lesson-layout {
     flex-direction: column;
@@ -538,16 +548,24 @@ select:focus {
     overflow: visible;
   }
   .lesson-left {
-    padding: 1rem;
+    overflow: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--clr-border);
+  }
+  .lesson-text-card {
+    margin: 1rem;
+    max-height: none;
     overflow-y: visible;
   }
-  .lesson-left-card {
-    height: auto;
+  .lesson-questions-card {
+    margin: 0 1rem 1rem 1rem;
+    max-height: none;
+    overflow-y: visible;
   }
   .lesson-right {
     width: 100%;
-    border-left: none;
     border-top: 1px solid var(--clr-border);
-    height: 500px;
+    height: 520px;
+    padding: 1rem;
   }
 }
