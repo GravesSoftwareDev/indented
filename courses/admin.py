@@ -4,7 +4,7 @@ from .models import Course, Lesson, LessonProgress, LessonQuestion
 class LessonQuestionInline(admin.TabularInline):
     model = LessonQuestion
     extra = 1
-    fields = ['question', 'expected_answer', 'order']
+    fields = ['question_type', 'question', 'choices', 'expected_answer', 'order']
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):

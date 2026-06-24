@@ -40,35 +40,102 @@
       <p class="section-label" style="margin-bottom: 1rem;">check your understanding</p>
 
       {% for question in questions %}
-      <div class="question-block" id="question-{{ question.id }}">
+      <div class="question-block" id="question-{{ question.id }}" data-type="{{ question.question_type }}">
         <p style="margin-bottom: 0.75rem; font-size: 0.9rem;">
           <span style="color: var(--clr-purple); font-family: var(--font-mono);">Q{{ forloop.counter }}.</span>
           {{ question.question|render_markdown }}
         </p>
-        <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
-          <textarea
-            id="answer-{{ question.id }}"
-            rows="2"
-            placeholder="paste your output here..."
-            style="
-              flex: 1;
-              font-family: var(--font-mono);
-              font-size: 0.85rem;
-              resize: vertical;
-              background: var(--clr-bg);
-              color: var(--clr-text);
-              border: 1px solid var(--clr-border);
-              border-radius: var(--radius-md);
-              padding: 0.5rem 0.75rem;
-              outline: none;
-            "
-          ></textarea>
-          <button
-            class="btn btn--primary"
-            style="padding: 0.4rem 0.9rem; flex-shrink: 0;"
-            onclick="checkAnswer({{ question.id }})"
-          >[ check ]</button>
-        </div>
+
+        {% if question.question_type == 'output' %}
+          <div style="display: flex; gap: 0.5rem; align-items: flex-start;">
+            <textarea
+              id="answer-{{ question.id }}"
+              rows="2"
+              placeholder="paste your output here..."
+              style="
+                flex: 1;
+                font-family: var(--font-mono);
+                font-size: 0.85rem;
+                resize: vertical;
+                background: var(--clr-bg);
+                color: var(--clr-text);
+                border: 1px solid var(--clr-border);
+                border-radius: var(--radius-md);
+                padding: 0.5rem 0.75rem;
+                outline: none;
+              "
+            ></textarea>
+            <button class="btn btn--primary" style="padding: 0.4rem 0.9rem; flex-shrink: 0;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
+          </div>
+
+        {% elif question.question_type == 'short_answer' %}
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <input
+              type="text"
+              id="answer-{{ question.id }}"
+              placeholder="type your answer..."
+              onkeydown="if(event.key==='Enter') checkAnswer({{ question.id }})"
+              style="
+                flex: 1;
+                font-family: var(--font-mono);
+                font-size: 0.85rem;
+                background: var(--clr-bg);
+                color: var(--clr-text);
+                border: 1px solid var(--clr-border);
+                border-radius: var(--radius-md);
+                padding: 0.45rem 0.75rem;
+                outline: none;
+              "
+            >
+            <button class="btn btn--primary" style="padding: 0.4rem 0.9rem; flex-shrink: 0;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
+          </div>
+
+        {% elif question.question_type == 'true_false' %}
+          <input type="hidden" id="answer-{{ question.id }}" value="">
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn--ghost tf-btn" data-qid="{{ question.id }}" data-value="True" onclick="selectTF(this)" style="min-width: 5rem;">[ True ]</button>
+            <button class="btn btn--ghost tf-btn" data-qid="{{ question.id }}" data-value="False" onclick="selectTF(this)" style="min-width: 5rem;">[ False ]</button>
+            <button class="btn btn--primary" style="padding: 0.4rem 0.9rem; margin-left: auto;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
+          </div>
+
+        {% elif question.question_type == 'multiple_choice' %}
+          <input type="hidden" id="answer-{{ question.id }}" value="">
+          <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem;">
+            {% for choice in question.get_choices %}
+              <button
+                class="btn btn--ghost mc-btn"
+                data-qid="{{ question.id }}"
+                data-value="{{ choice }}"
+                onclick="selectMC(this)"
+                style="text-align: left; justify-content: flex-start;"
+              >{{ choice }}</button>
+            {% endfor %}
+          </div>
+          <button class="btn btn--primary" style="padding: 0.4rem 0.9rem;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
+
+        {% elif question.question_type == 'ordering' %}
+          <input type="hidden" id="answer-{{ question.id }}" value="">
+          <div class="order-list" data-qid="{{ question.id }}" style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.6rem;">
+            {% for choice in question.get_choices %}
+              <div class="order-item" data-qid="{{ question.id }}" data-value="{{ choice }}" style="display: flex; gap: 0.4rem; align-items: center;">
+                <span style="
+                  flex: 1;
+                  font-family: var(--font-mono);
+                  font-size: 0.85rem;
+                  background: var(--clr-bg);
+                  color: var(--clr-text);
+                  border: 1px solid var(--clr-border);
+                  border-radius: var(--radius-md);
+                  padding: 0.4rem 0.75rem;
+                ">{{ choice }}</span>
+                <button class="btn btn--ghost" style="padding: 0.3rem 0.55rem; font-size: 0.8rem; flex-shrink: 0;" onclick="moveOrderItem(this, -1)">[ ↑ ]</button>
+                <button class="btn btn--ghost" style="padding: 0.3rem 0.55rem; font-size: 0.8rem; flex-shrink: 0;" onclick="moveOrderItem(this, 1)">[ ↓ ]</button>
+              </div>
+            {% endfor %}
+          </div>
+          <button class="btn btn--primary" style="padding: 0.4rem 0.9rem;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
+        {% endif %}
+
         <div id="result-{{ question.id }}" style="margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.82rem; min-height: 1.2rem;"></div>
         {% if not forloop.last %}
           <hr style="border: none; border-top: 1px solid var(--clr-border); margin: 1.25rem 0;">
@@ -197,14 +264,64 @@
     });
   }
 
+  // --- True/False and Multiple Choice selection ---
+  function selectTF(btn) {
+    const qid = btn.dataset.qid;
+    document.querySelectorAll(`.tf-btn[data-qid="${qid}"]`).forEach(b => {
+      b.classList.remove('btn--primary');
+      b.classList.add('btn--ghost');
+    });
+    btn.classList.remove('btn--ghost');
+    btn.classList.add('btn--primary');
+    document.getElementById(`answer-${qid}`).value = btn.dataset.value;
+  }
+
+  function moveOrderItem(btn, dir) {
+    const item = btn.closest('.order-item');
+    const list = btn.closest('.order-list');
+    if (dir === -1 && item.previousElementSibling) {
+      list.insertBefore(item, item.previousElementSibling);
+    } else if (dir === 1 && item.nextElementSibling) {
+      list.insertBefore(item.nextElementSibling, item);
+    }
+    const qid = list.dataset.qid;
+    const order = Array.from(list.querySelectorAll('.order-item')).map(i => i.dataset.value).join('\n');
+    document.getElementById(`answer-${qid}`).value = order;
+  }
+
+  function selectMC(btn) {
+    const qid = btn.dataset.qid;
+    document.querySelectorAll(`.mc-btn[data-qid="${qid}"]`).forEach(b => {
+      b.classList.remove('btn--primary');
+      b.classList.add('btn--ghost');
+    });
+    btn.classList.remove('btn--ghost');
+    btn.classList.add('btn--primary');
+    document.getElementById(`answer-${qid}`).value = btn.dataset.value;
+  }
+
+  // --- Shuffle ordering lists on load ---
+  document.querySelectorAll('.order-list').forEach(list => {
+    const items = Array.from(list.querySelectorAll('.order-item'));
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    items.forEach(item => list.appendChild(item));
+    const qid = list.dataset.qid;
+    document.getElementById(`answer-${qid}`).value = items.map(i => i.dataset.value).join('\n');
+  });
+
   // --- Answer checker ---
   function checkAnswer(questionId) {
-    const userAnswer = document.getElementById(`answer-${questionId}`).value.trim();
+    const answerEl = document.getElementById(`answer-${questionId}`);
+    const userAnswer = answerEl.value.trim();
     const resultEl = document.getElementById(`result-${questionId}`);
+    const qType = document.getElementById(`question-${questionId}`).dataset.type;
 
     if (!userAnswer) {
       resultEl.style.color = 'var(--clr-muted)';
-      resultEl.textContent = '# paste your output first';
+      resultEl.textContent = qType === 'output' ? '# paste your output first' : '# select or type your answer first';
       return;
     }
 
@@ -227,7 +344,10 @@
         resultEl.textContent = '✓ correct!';
       } else {
         resultEl.style.color = '#F87171';
-        resultEl.textContent = `✗ not quite — expected: ${data.expected}`;
+        let hint = '';
+        if (qType === 'output' || qType === 'short_answer') hint = ` — expected: ${data.expected}`;
+        else if (qType === 'ordering') hint = ` — correct order: ${data.expected}`;
+        resultEl.textContent = `✗ not quite${hint}`;
       }
     })
     .catch(() => {

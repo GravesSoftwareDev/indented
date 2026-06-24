@@ -75,8 +75,17 @@ def check_answer(request, question_id):
 
     question = get_object_or_404(LessonQuestion, id=question_id)
     user_answer = request.POST.get('answer', '').strip()
-    expected = question.expected_answer.strip()
 
+    if question.question_type == 'ordering':
+        correct_order = question.get_choices()
+        user_order = [item.strip() for item in user_answer.split('\n') if item.strip()]
+        correct = [i.lower() for i in user_order] == [i.lower() for i in correct_order]
+        return JsonResponse({
+            'correct': correct,
+            'expected': ' → '.join(correct_order) if not correct else None,
+        })
+
+    expected = question.expected_answer.strip()
     correct = user_answer.lower() == expected.lower()
 
     return JsonResponse({

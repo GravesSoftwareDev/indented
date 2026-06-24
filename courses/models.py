@@ -43,8 +43,18 @@ class LessonProgress(models.Model):
         return f"{self.user.username} - {self.lesson.title} Completed: {self.completed}"
     
 class LessonQuestion(models.Model):
+    QUESTION_TYPES = [
+        ('output', 'Paste Output'),
+        ('short_answer', 'Short Answer'),
+        ('true_false', 'True / False'),
+        ('multiple_choice', 'Multiple Choice'),
+        ('ordering', 'Put in Order'),
+    ]
+
     lesson          = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='questions')
+    question_type   = models.CharField(max_length=20, choices=QUESTION_TYPES, default='output')
     question        = models.TextField()
+    choices         = models.TextField(blank=True, default='', help_text='One item per line. For multiple choice: options (expected_answer = correct one). For ordering: items in correct order (expected_answer unused).')
     expected_answer = models.TextField()
     order           = models.PositiveIntegerField(default=0)
 
@@ -53,3 +63,6 @@ class LessonQuestion(models.Model):
 
     def __str__(self):
         return f"{self.lesson.title} — Q{self.order}"
+
+    def get_choices(self):
+        return [c.strip() for c in self.choices.splitlines() if c.strip()]
