@@ -292,7 +292,7 @@ def _make_input_fn_preset(responses):
     `);
     status.textContent = 'ready';
     runBtn.disabled = false;
-    cmEditor.refresh();
+    setTimeout(() => cmEditor.refresh(), 50);
   }
 
   async function runCode() {

@@ -434,8 +434,8 @@ select:focus {
   color: #E8E6E1 !important;
   font-family: 'Courier New', Courier, monospace !important;
   font-size: 0.9rem !important;
-  height: auto !important;
-  min-height: 300px !important;
+  height: 300px !important;
+  min-height: 200px !important;
   border-radius: 6px !important;
 }
 
