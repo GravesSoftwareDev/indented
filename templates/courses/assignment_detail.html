@@ -98,7 +98,7 @@
 
 <script>
   const buggyCode = `{{ assignment.buggy_code|escapejs }}`;
-  const TEST_INPUTS = {{ test_inputs_json }};
+  const TEST_INPUTS = {{ test_inputs_json|safe }};
 
   const STORAGE_KEY = 'assignment_code_{{ assignment.id }}';
   const savedCode = localStorage.getItem(STORAGE_KEY);
