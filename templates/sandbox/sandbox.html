@@ -46,7 +46,7 @@
         <span id="status" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--clr-muted);"></span>
       </div>
 
-      <div id="terminal" style="
+      <div id="terminal" aria-label="Code output terminal" aria-live="polite" style="
         background: var(--clr-bg);
         padding: 1rem 1.25rem;
         font-family: var(--font-mono);
@@ -96,7 +96,7 @@
 .cm-string    { color: #7EE8F5 !important; }
 .cm-string-2  { color: #7EE8F5 !important; }
 .cm-def       { color: #7EE8F5 !important; }
-.cm-number    { color: #F5C97E !important; }
+.cm-number    { color: #41ffb6 !important; }
 .cm-variable  { color: #B97EF5 !important; }
 .cm-variable-2 { color: #B97EF5 !important; }
 .cm-property  { color: #B97EF5 !important; }
@@ -164,9 +164,10 @@
     loadingMsg.textContent = loadingMessages[msgIndex];
   }, 3000);
 
-  function termWrite(text, color) {
+  function termWrite(text, color, isError) {
     const span = document.createElement('span');
     span.style.color = color || '#E8E6E1';
+    if (isError) span.className = 'term-error';
     span.textContent = text;
     terminal.appendChild(span);
     terminal.scrollTop = terminal.scrollHeight;
@@ -282,7 +283,7 @@ builtins.input = _make_input_fn(list(__current_responses__))
         const out = pyodide.runPython('sys.stdout.getvalue()');
         const err = pyodide.runPython('sys.stderr.getvalue()');
         if (out) termWrite(out, '#E8E6E1');
-        if (err) termWrite(err, '#F87171');
+        if (err) termWrite(err, '#F87171', true);
         return;
 
       } catch (e) {
@@ -305,12 +306,12 @@ builtins.input = _make_input_fn(list(__current_responses__))
           try {
             errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error';
           } catch (_) { errMsg = e.message || 'Unknown error'; }
-          termWrite(errMsg, '#F87171');
+          termWrite(errMsg, '#F87171', true);
           return;
         }
       }
     }
-    termWrite('Error: exceeded maximum input() calls.\n', '#F87171');
+    termWrite('Error: exceeded maximum input() calls.\n', '#F87171', true);
   }
 
   loadPyodide_();

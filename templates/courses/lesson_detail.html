@@ -52,6 +52,7 @@
               id="answer-{{ question.id }}"
               rows="2"
               placeholder="paste your output here..."
+              aria-label="Your answer for question {{ forloop.counter }}: paste your output here"
               style="
                 flex: 1;
                 font-family: var(--font-mono);
@@ -74,6 +75,7 @@
               type="text"
               id="answer-{{ question.id }}"
               placeholder="type your answer..."
+              aria-label="Your answer for question {{ forloop.counter }}"
               onkeydown="if(event.key==='Enter') checkAnswer({{ question.id }})"
               style="
                 flex: 1;
@@ -136,7 +138,7 @@
           <button class="btn btn--primary" style="padding: 0.4rem 0.9rem;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
         {% endif %}
 
-        <div id="result-{{ question.id }}" style="margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.82rem; min-height: 1.2rem;"></div>
+        <div id="result-{{ question.id }}" role="status" aria-live="polite" aria-atomic="true" style="margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.82rem; min-height: 1.2rem;"></div>
         {% if not forloop.last %}
           <hr style="border: none; border-top: 1px solid var(--clr-border); margin: 1.25rem 0;">
         {% endif %}
@@ -166,7 +168,7 @@
         <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="copyOutput()" id="copy-btn">[ copy output ]</button>
       </div>
 
-      <div id="terminal" class="lesson-terminal">
+      <div id="terminal" class="lesson-terminal" aria-label="Code output terminal" aria-live="polite">
         <span style="color: var(--clr-muted)">// output will appear here</span>
       </div>
 
@@ -368,9 +370,10 @@
   status.textContent = 'loading...';
   runBtn.disabled = true;
 
-  function termWrite(text, color) {
+  function termWrite(text, color, isError) {
     const span = document.createElement('span');
     span.style.color = color || '#E8E6E1';
+    if (isError) span.className = 'term-error';
     span.textContent = text;
     terminal.appendChild(span);
     terminal.scrollTop = terminal.scrollHeight;
@@ -470,7 +473,7 @@ builtins.input = _make_input_fn(list(__current_responses__))
         const out = pyodide.runPython('sys.stdout.getvalue()');
         const err = pyodide.runPython('sys.stderr.getvalue()');
         if (out) termWrite(out, '#E8E6E1');
-        if (err) termWrite(err, '#F87171');
+        if (err) termWrite(err, '#F87171', true);
         return;
       } catch (e) {
         const isInputNeeded = e.type === 'InputNeeded' || (e.message && e.message.includes('InputNeeded'));
@@ -489,12 +492,12 @@ builtins.input = _make_input_fn(list(__current_responses__))
           let errMsg = '';
           try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
           catch (_) { errMsg = e.message || 'Unknown error'; }
-          termWrite(errMsg, '#F87171');
+          termWrite(errMsg, '#F87171', true);
           return;
         }
       }
     }
-    termWrite('Error: exceeded maximum input() calls.\n', '#F87171');
+    termWrite('Error: exceeded maximum input() calls.\n', '#F87171', true);
   }
 
   loadPyodide_();

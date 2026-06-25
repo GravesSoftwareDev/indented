@@ -13,7 +13,7 @@
   <nav>
     <div class="nav__inner">
       <a href="{% url 'course_list' %}" class="nav__brand">indented</a>
-      <button class="nav__toggle" onclick="toggleNav()">[ menu ]</button>
+      <button class="nav__toggle" onclick="toggleNav()" aria-expanded="false" aria-controls="nav-links" aria-label="Open navigation menu">[ menu ]</button>
       <ul class="nav__links" id="nav-links">
         <li><a href="{% url 'course_list' %}">Courses</a></li>
         <li><a href="{% url 'sandbox' %}">Sandbox</a></li>
@@ -26,7 +26,7 @@
           <li><a href="{% url 'login' %}">Log In</a></li>
         {% endif %}
         <li>
-          <button id="theme-toggle" onclick="toggleTheme()" style="background:none;border:none;color:var(--clr-muted);font-family:var(--font-mono);font-size:0.85rem;cursor:pointer;padding:0;transition:color 0.15s;" onmouseover="this.style.color='var(--clr-purple)'" onmouseout="this.style.color='var(--clr-muted)'">[ light ]</button>
+          <button id="theme-toggle" onclick="toggleTheme()" aria-label="Switch to light mode" style="background:none;border:none;color:var(--clr-muted);font-family:var(--font-mono);font-size:0.85rem;cursor:pointer;padding:0;transition:color 0.15s;" onmouseover="this.style.color='var(--clr-purple)'" onmouseout="this.style.color='var(--clr-muted)'">[ light ]</button>
         </li>
       </ul>
     </div>
@@ -46,13 +46,18 @@
 
   <script>
     function toggleNav() {
-      document.getElementById('nav-links').classList.toggle('open');
+      const navLinks = document.getElementById('nav-links');
+      const toggleBtn = document.querySelector('.nav__toggle');
+      const isOpen = navLinks.classList.toggle('open');
+      toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      toggleBtn.setAttribute('aria-label', isOpen ? 'Close navigation menu' : 'Open navigation menu');
     }
 
     (function () {
       const btn = document.getElementById('theme-toggle');
       if (document.documentElement.classList.contains('light-mode')) {
         btn.textContent = '[ dark ]';
+        btn.setAttribute('aria-label', 'Switch to dark mode');
       }
     })();
 
@@ -61,6 +66,7 @@
       const isLight = document.documentElement.classList.toggle('light-mode');
       localStorage.setItem('theme', isLight ? 'light' : 'dark');
       btn.textContent = isLight ? '[ dark ]' : '[ light ]';
+      btn.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
     }
   </script>
 

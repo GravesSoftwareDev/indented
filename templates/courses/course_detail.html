@@ -17,7 +17,14 @@
       <span class="text-mono" style="font-size: 0.8rem; color: var(--clr-muted);">// progress</span>
       <span class="text-mono" style="font-size: 0.8rem; color: var(--clr-purple);">{{ completed_count }} / {{ total }}</span>
     </div>
-    <div style="background: var(--clr-surface-2); border-radius: 999px; height: 6px; overflow: hidden;">
+    <div
+      role="progressbar"
+      aria-valuenow="{{ completed_count }}"
+      aria-valuemin="0"
+      aria-valuemax="{{ total }}"
+      aria-label="Course progress: {{ completed_count }} of {{ total }} lessons completed"
+      style="background: var(--clr-surface-2); border-radius: 999px; height: 6px; overflow: hidden;"
+    >
       <div style="background: var(--clr-purple); height: 100%; width: {{ progress_pct }}%; transition: width 0.3s ease; border-radius: 999px;"></div>
     </div>
   </div>

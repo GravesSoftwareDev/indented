@@ -50,7 +50,7 @@
       {% endif %}
     </div>
 
-    <div id="terminal" class="lesson-terminal" style="min-height: 160px; max-height: 320px; flex: none;">
+    <div id="terminal" class="lesson-terminal" style="min-height: 160px; max-height: 320px; flex: none;" aria-label="Code output terminal" aria-live="polite">
       <span style="color: var(--clr-muted)">// output will appear here</span>
     </div>
   </div>
@@ -82,7 +82,7 @@
       {% endif %}
     </div>
 
-    <div id="submit-result" style="margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.85rem; min-height: 1.2rem;"></div>
+    <div id="submit-result" role="status" aria-live="polite" aria-atomic="true" style="margin-top: 0.75rem; font-family: var(--font-mono); font-size: 0.85rem; min-height: 1.2rem;"></div>
   </div>
 
 </div>
@@ -214,9 +214,10 @@
   status.textContent = 'loading...';
   runBtn.disabled = true;
 
-  function termWrite(text, color) {
+  function termWrite(text, color, isError) {
     const span = document.createElement('span');
     span.style.color = color || '#E8E6E1';
+    if (isError) span.className = 'term-error';
     span.textContent = text;
     terminal.appendChild(span);
     terminal.scrollTop = terminal.scrollHeight;
@@ -324,15 +325,15 @@ builtins.input = _make_input_fn_preset(list(__current_responses__))
       const out = pyodide.runPython('sys.stdout.getvalue()');
       const err = pyodide.runPython('sys.stderr.getvalue()');
       if (out) termWrite(out, '#E8E6E1');
-      if (err) termWrite(err, '#F87171');
+      if (err) termWrite(err, '#F87171', true);
     } catch (e) {
       let errMsg = '';
       try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
       catch (_) { errMsg = e.message || 'Unknown error'; }
       if (e.type === 'InputNeeded' || (errMsg && errMsg.includes('InputNeeded'))) {
-        termWrite('// not enough test inputs — check the assignment configuration\n', '#FACC15');
+        termWrite('// not enough test inputs — check the assignment configuration\n', '#FACC15', true);
       } else {
-        termWrite(errMsg, '#F87171');
+        termWrite(errMsg, '#F87171', true);
       }
     }
   }
@@ -358,7 +359,7 @@ builtins.input = _make_input_fn(list(__current_responses__))
         const out = pyodide.runPython('sys.stdout.getvalue()');
         const err = pyodide.runPython('sys.stderr.getvalue()');
         if (out) termWrite(out, '#E8E6E1');
-        if (err) termWrite(err, '#F87171');
+        if (err) termWrite(err, '#F87171', true);
         return;
       } catch (e) {
         const isInputNeeded = e.type === 'InputNeeded' || (e.message && e.message.includes('InputNeeded'));
@@ -377,12 +378,12 @@ builtins.input = _make_input_fn(list(__current_responses__))
           let errMsg = '';
           try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
           catch (_) { errMsg = e.message || 'Unknown error'; }
-          termWrite(errMsg, '#F87171');
+          termWrite(errMsg, '#F87171', true);
           return;
         }
       }
     }
-    termWrite('Error: exceeded maximum input() calls.\n', '#F87171');
+    termWrite('Error: exceeded maximum input() calls.\n', '#F87171', true);
   }
 
   loadPyodide_();

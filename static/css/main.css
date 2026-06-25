@@ -343,6 +343,15 @@ select:focus {
   box-shadow: 0 0 0 3px rgba(185, 126, 245, 0.1);
 }
 
+/* Keyboard focus ring — visible to all users, not just mouse */
+:focus-visible {
+  outline: 2px solid var(--clr-purple);
+  outline-offset: 2px;
+}
+
+/* Terminal error text: bold so it stands out beyond color alone */
+.term-error { font-weight: bold; }
+
 /* --- Badges --- */
 .badge {
   display: inline-block;
@@ -368,10 +377,16 @@ select:focus {
   font-family: var(--font-mono);
 }
 
+/* Symbol prefix so alert type is communicated by shape, not color alone */
+.alert--info::before    { content: 'ℹ  '; font-style: normal; }
+.alert--success::before { content: '✓  '; font-style: normal; font-weight: bold; }
+.alert--warning::before { content: '⚠  '; font-style: normal; }
+.alert--danger::before  { content: '✗  '; font-style: normal; font-weight: bold; }
+
 .alert--info    { background: var(--clr-purple-dim); border-color: var(--clr-purple);  color: var(--clr-purple); }
-.alert--success { background: rgba(74,222,128,0.08); border-color: var(--clr-success); color: var(--clr-success); }
+.alert--success { background: rgba(74,222,128,0.08); border-color: var(--clr-success); color: var(--clr-success); font-weight: bold; }
 .alert--warning { background: rgba(250,204,21,0.08); border-color: var(--clr-warning); color: var(--clr-warning); }
-.alert--danger  { background: rgba(248,113,113,0.08);border-color: var(--clr-danger);  color: var(--clr-danger); }
+.alert--danger  { background: rgba(248,113,113,0.08);border-color: var(--clr-danger);  color: var(--clr-danger);  font-weight: bold; }
 
 /* --- Django form errors --- */
 .errorlist { list-style: none; margin-bottom: 0.5rem; }
