@@ -17,6 +17,7 @@
       <ul class="nav__links" id="nav-links">
         <li><a href="{% url 'course_list' %}">Courses</a></li>
         <li><a href="{% url 'sandbox' %}">Sandbox</a></li>
+        <li><a href="{% url 'feedback_report' %}">Feedback</a></li>
         {% if user.is_authenticated %}
           {% if user.is_staff %}
             <li><a href="/admin/">Admin</a></li>
@@ -33,6 +34,13 @@
   </nav>
 
   <main>
+    {% if messages %}
+      <div class="container" style="padding-top: 1.25rem; padding-bottom: 0;">
+        {% for message in messages %}
+          <div class="alert alert--{{ message.tags|default:'info' }}" role="alert">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 

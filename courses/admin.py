@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Lesson, LessonProgress, LessonQuestion, Assignment, AssignmentSubmission
+from .models import Course, Lesson, LessonProgress, LessonQuestion, Assignment, AssignmentSubmission, FeedbackReport, CourseSurveyResponse
 
 class LessonQuestionInline(admin.TabularInline):
     model = LessonQuestion
@@ -32,3 +32,18 @@ class AssignmentAdmin(admin.ModelAdmin):
 class AssignmentSubmissionAdmin(admin.ModelAdmin):
     list_display = ['user', 'assignment', 'passed', 'submitted_at']
     readonly_fields = ['user', 'assignment', 'code', 'passed', 'submitted_at']
+
+@admin.register(FeedbackReport)
+class FeedbackReportAdmin(admin.ModelAdmin):
+    list_display = ['category', 'user', 'page', 'submitted_at', 'resolved']
+    list_filter = ['category', 'resolved']
+    list_editable = ['resolved']
+    readonly_fields = ['user', 'category', 'message', 'page', 'submitted_at']
+    ordering = ['-submitted_at']
+
+@admin.register(CourseSurveyResponse)
+class CourseSurveyResponseAdmin(admin.ModelAdmin):
+    list_display = ['user', 'course', 'rating', 'content_clarity', 'would_recommend', 'submitted_at']
+    list_filter = ['course', 'rating', 'would_recommend']
+    readonly_fields = ['user', 'course', 'rating', 'content_clarity', 'liked_most', 'improve', 'would_recommend', 'submitted_at']
+    ordering = ['-submitted_at']

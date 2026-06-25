@@ -102,3 +102,41 @@ class AssignmentSubmission(models.Model):
 
     def __str__(self):
         return f"{self.user.username} — {self.assignment.title} — {'✓' if self.passed else '✗'}"
+
+
+class FeedbackReport(models.Model):
+    CATEGORY_CHOICES = [
+        ('bug', 'Bug Report'),
+        ('feedback', 'General Feedback'),
+        ('suggestion', 'Suggestion'),
+    ]
+    user         = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='feedback_reports')
+    category     = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='feedback')
+    message      = models.TextField()
+    page         = models.CharField(max_length=500, blank=True, default='', help_text='Page or URL where the issue occurred')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    resolved     = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-submitted_at']
+
+    def __str__(self):
+        return f"{self.get_category_display()} — {self.user or 'anonymous'} — {self.submitted_at:%Y-%m-%d}"
+
+
+class CourseSurveyResponse(models.Model):
+    user            = models.ForeignKey(User, on_delete=models.CASCADE, related_name='survey_responses')
+    course          = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='survey_responses')
+    rating          = models.PositiveSmallIntegerField(help_text='Overall course rating 1–5')
+    content_clarity = models.PositiveSmallIntegerField(help_text='How well you understood the content 1–5')
+    liked_most      = models.TextField(blank=True, default='')
+    improve         = models.TextField(blank=True, default='')
+    would_recommend = models.BooleanField(null=True, blank=True)
+    submitted_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'course']
+        ordering = ['-submitted_at']
+
+    def __str__(self):
+        return f"{self.user.username} — {self.course.title} — {self.rating}/5"

@@ -3,7 +3,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
-from .models import Course, Lesson, LessonProgress, LessonQuestion, Assignment, AssignmentSubmission
+from django.contrib import messages
+from .models import Course, Lesson, LessonProgress, LessonQuestion, Assignment, AssignmentSubmission, FeedbackReport, CourseSurveyResponse
 
 @login_required
 def course_list(request):
@@ -35,7 +36,18 @@ def course_detail(request, slug):
             passed=True,
         ).values_list('assignment_id', flat=True)
     )
-    assignments_locked = completed_count < total
+    assignments_locked = not request.user.is_staff and (completed_count < total)
+
+    assignment_count = assignments.count()
+    all_assignments_passed = len(passed_assignment_ids) >= assignment_count
+    course_fully_complete = (
+        total > 0 and completed_count >= total and
+        (assignment_count == 0 or all_assignments_passed)
+    )
+    survey_submitted = (
+        CourseSurveyResponse.objects.filter(user=request.user, course=course).exists()
+        if course_fully_complete else False
+    )
 
     return render(request, 'courses/course_detail.html', {
         'course': course,
@@ -47,6 +59,8 @@ def course_detail(request, slug):
         'assignments': assignments,
         'passed_assignment_ids': passed_assignment_ids,
         'assignments_locked': assignments_locked,
+        'course_fully_complete': course_fully_complete,
+        'survey_submitted': survey_submitted,
     })
 
 @login_required
@@ -123,7 +137,7 @@ def assignment_detail(request, course_slug, assignment_slug):
     course = get_object_or_404(Course, slug=course_slug)
     assignment = get_object_or_404(Assignment, slug=assignment_slug, course=course)
 
-    if not _all_lessons_complete(request.user, course):
+    if not request.user.is_staff and not _all_lessons_complete(request.user, course):
         return redirect('course_detail', slug=course_slug)
 
     passed = AssignmentSubmission.objects.filter(
@@ -148,7 +162,7 @@ def submit_assignment(request, course_slug, assignment_slug):
     course = get_object_or_404(Course, slug=course_slug)
     assignment = get_object_or_404(Assignment, slug=assignment_slug, course=course)
 
-    if not _all_lessons_complete(request.user, course):
+    if not request.user.is_staff and not _all_lessons_complete(request.user, course):
         return JsonResponse({'error': 'Complete all lessons first'}, status=403)
 
     code = request.POST.get('code', '')
@@ -168,3 +182,89 @@ def submit_assignment(request, course_slug, assignment_slug):
         'passed': passed,
         'expected': expected if not passed else None,
     })
+
+
+@login_required
+def feedback_report(request):
+    if request.method == 'POST':
+        category = request.POST.get('category', 'feedback')
+        message_text = request.POST.get('message', '').strip()
+        page = request.POST.get('page', '').strip()
+
+        if message_text:
+            FeedbackReport.objects.create(
+                user=request.user,
+                category=category,
+                message=message_text,
+                page=page,
+            )
+            messages.success(request, 'Thanks — your feedback has been submitted.')
+            return redirect('feedback_report')
+
+    return render(request, 'courses/feedback.html', {
+        'submitted': 'submitted' in request.GET,
+    })
+
+
+@login_required
+def course_survey(request, slug):
+    course = get_object_or_404(Course, slug=slug)
+
+    lessons = course.lessons.all()
+    total = lessons.count()
+    completed_count = LessonProgress.objects.filter(
+        user=request.user, lesson__in=lessons, completed=True
+    ).count()
+
+    assignments = course.assignments.all()
+    assignment_count = assignments.count()
+    passed_count = AssignmentSubmission.objects.filter(
+        user=request.user, assignment__in=assignments, passed=True
+    ).values('assignment').distinct().count()
+
+    course_complete = (
+        total > 0 and completed_count >= total and
+        (assignment_count == 0 or passed_count >= assignment_count)
+    )
+
+    if not request.user.is_staff and not course_complete:
+        return redirect('course_detail', slug=slug)
+
+    already_submitted = CourseSurveyResponse.objects.filter(
+        user=request.user, course=course
+    ).exists()
+
+    if request.method == 'POST' and not already_submitted:
+        try:
+            rating = int(request.POST.get('rating', 0))
+            content_clarity = int(request.POST.get('content_clarity', 0))
+        except (ValueError, TypeError):
+            rating = content_clarity = 0
+
+        liked_most = request.POST.get('liked_most', '').strip()
+        improve = request.POST.get('improve', '').strip()
+        recommend_raw = request.POST.get('would_recommend', '')
+        would_recommend = True if recommend_raw == 'yes' else (False if recommend_raw == 'no' else None)
+
+        if 1 <= rating <= 5 and 1 <= content_clarity <= 5:
+            CourseSurveyResponse.objects.create(
+                user=request.user,
+                course=course,
+                rating=rating,
+                content_clarity=content_clarity,
+                liked_most=liked_most,
+                improve=improve,
+                would_recommend=would_recommend,
+            )
+            return redirect('course_survey_done', slug=slug)
+
+    return render(request, 'courses/course_survey.html', {
+        'course': course,
+        'already_submitted': already_submitted,
+    })
+
+
+@login_required
+def course_survey_done(request, slug):
+    course = get_object_or_404(Course, slug=slug)
+    return render(request, 'courses/course_survey_done.html', {'course': course})

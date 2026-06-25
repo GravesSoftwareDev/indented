@@ -7,7 +7,12 @@
   <p class="text-mono text-muted" style="margin-bottom: 0.5rem;">
     <a href="{% url 'course_list' %}">← Courses</a>
   </p>
-  <h1 style="margin-bottom: 0.25rem;">{{ course.title }}</h1>
+  <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.25rem;">
+    <h1 style="margin: 0;">{{ course.title }}</h1>
+    {% if user.is_staff %}
+      <span class="badge badge--warning" title="Staff preview — lesson restrictions bypassed">staff</span>
+    {% endif %}
+  </div>
   <p class="text-muted" style="margin-bottom: 1.5rem;">{{ course.description }}</p>
 
   <!-- Progress bar -->
@@ -76,5 +81,23 @@
     {% endif %}
   {% endfor %}
   {% endif %}
+
+  {% if course_fully_complete %}
+    <div class="card" style="margin-top: 1rem; border-left: 3px solid var(--clr-purple);">
+      {% if survey_submitted %}
+        <p class="section-label" style="margin-bottom: 0.5rem;">survey</p>
+        <p style="font-size: 0.88rem; color: var(--clr-muted); margin-bottom: 0;">
+          ✓ You've already submitted feedback for this course. Thanks!
+        </p>
+      {% else %}
+        <p class="section-label" style="margin-bottom: 0.5rem;">course complete</p>
+        <p style="font-size: 0.88rem; color: var(--clr-muted); margin-bottom: 1rem;">
+          // you've finished everything — take a quick survey to share how it went.
+        </p>
+        <a href="{% url 'course_survey' course.slug %}" class="btn btn--primary">[ take the survey ]</a>
+      {% endif %}
+    </div>
+  {% endif %}
+
 </div>
 {% endblock %}

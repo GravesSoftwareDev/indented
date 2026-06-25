@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Survey Complete — Indented{% endblock %}
+
+{% block content %}
+<div class="container container--narrow" style="text-align: center; padding-top: 3rem;">
+
+  <p style="font-size: 2rem; margin-bottom: 1rem;">✓</p>
+  <h1 style="margin-bottom: 0.5rem;">Thanks for the feedback!</h1>
+  <p style="color: var(--clr-muted); margin-bottom: 2rem;">
+    Your responses help us improve <strong style="color: var(--clr-text);">{{ course.title }}</strong> for future students.
+  </p>
+
+  <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+    <a href="{% url 'course_detail' course.slug %}" class="btn btn--primary">[ back to course ]</a>
+    <a href="{% url 'course_list' %}" class="btn btn--ghost">[ all courses ]</a>
+  </div>
+
+</div>
+{% endblock %}

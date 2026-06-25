@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Course Survey — {{ course.title }} — Indented{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+
+  <p style="color: var(--clr-muted); margin-bottom: 0.5rem;">
+    <a href="{% url 'course_detail' course.slug %}">← {{ course.title }}</a>
+  </p>
+  <h1 style="margin-bottom: 0.25rem;">Course <span>Survey</span></h1>
+  <p style="color: var(--clr-muted); margin-bottom: 2rem;">
+    Tell us how it went — your answers help us improve the course for future students.
+  </p>
+
+  {% if already_submitted %}
+    <div class="alert alert--info" role="alert">
+      You've already submitted a survey for this course. Thanks for the feedback!
+    </div>
+    <a href="{% url 'course_detail' course.slug %}" class="btn btn--ghost">← Back to course</a>
+
+  {% else %}
+    <div class="card card--accent">
+      <form method="post">
+        {% csrf_token %}
+
+        <!-- Overall rating -->
+        <fieldset style="border: none; margin-bottom: 1.75rem;">
+          <legend style="font-size: 0.8rem; color: var(--clr-muted); letter-spacing: 0.08em; margin-bottom: 0.75rem;">
+            // overall rating <span style="color: var(--clr-subtle);">(required)</span>
+          </legend>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap;" role="group" aria-label="Overall rating 1 to 5">
+            <label class="rating-label"><input type="radio" name="rating" value="1" required><span class="rating-box">1</span></label>
+            <label class="rating-label"><input type="radio" name="rating" value="2"><span class="rating-box">2</span></label>
+            <label class="rating-label"><input type="radio" name="rating" value="3"><span class="rating-box">3</span></label>
+            <label class="rating-label"><input type="radio" name="rating" value="4"><span class="rating-box">4</span></label>
+            <label class="rating-label"><input type="radio" name="rating" value="5"><span class="rating-box">5</span></label>
+          </div>
+          <p style="font-size: 0.78rem; color: var(--clr-subtle); margin-top: 0.5rem; margin-bottom: 0;">1 = Poor &nbsp;·&nbsp; 5 = Excellent</p>
+        </fieldset>
+
+        <!-- Content clarity -->
+        <fieldset style="border: none; margin-bottom: 1.75rem;">
+          <legend style="font-size: 0.8rem; color: var(--clr-muted); letter-spacing: 0.08em; margin-bottom: 0.75rem;">
+            // how well did you understand the content? <span style="color: var(--clr-subtle);">(required)</span>
+          </legend>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap;" role="group" aria-label="Content clarity 1 to 5">
+            <label class="rating-label"><input type="radio" name="content_clarity" value="1" required><span class="rating-box">1</span></label>
+            <label class="rating-label"><input type="radio" name="content_clarity" value="2"><span class="rating-box">2</span></label>
+            <label class="rating-label"><input type="radio" name="content_clarity" value="3"><span class="rating-box">3</span></label>
+            <label class="rating-label"><input type="radio" name="content_clarity" value="4"><span class="rating-box">4</span></label>
+            <label class="rating-label"><input type="radio" name="content_clarity" value="5"><span class="rating-box">5</span></label>
+          </div>
+          <p style="font-size: 0.78rem; color: var(--clr-subtle); margin-top: 0.5rem; margin-bottom: 0;">1 = Very confused &nbsp;·&nbsp; 5 = Understood everything</p>
+        </fieldset>
+
+        <!-- Would recommend -->
+        <fieldset style="border: none; margin-bottom: 1.75rem;">
+          <legend style="font-size: 0.8rem; color: var(--clr-muted); letter-spacing: 0.08em; margin-bottom: 0.75rem;">
+            // would you recommend this course to a friend?
+          </legend>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-family: var(--font-mono); font-size: 0.9rem; color: var(--clr-text);">
+              <input type="radio" name="would_recommend" value="yes" style="accent-color: var(--clr-purple); width: 1rem; height: 1rem;">
+              Yes
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-family: var(--font-mono); font-size: 0.9rem; color: var(--clr-text);">
+              <input type="radio" name="would_recommend" value="no" style="accent-color: var(--clr-purple); width: 1rem; height: 1rem;">
+              No
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-family: var(--font-mono); font-size: 0.9rem; color: var(--clr-text);">
+              <input type="radio" name="would_recommend" value="" style="accent-color: var(--clr-purple); width: 1rem; height: 1rem;">
+              Prefer not to say
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- What did you like most -->
+        <div class="form-group">
+          <label for="liked_most">what did you like most? <span style="color: var(--clr-subtle); font-size: 0.75rem;">(optional)</span></label>
+          <textarea
+            name="liked_most"
+            id="liked_most"
+            rows="3"
+            placeholder="e.g. the interactive code editor, clear explanations..."
+            style="resize: vertical;"
+          ></textarea>
+        </div>
+
+        <!-- What could be improved -->
+        <div class="form-group">
+          <label for="improve">what could be improved? <span style="color: var(--clr-subtle); font-size: 0.75rem;">(optional)</span></label>
+          <textarea
+            name="improve"
+            id="improve"
+            rows="3"
+            placeholder="e.g. more examples, slower pacing on a topic..."
+            style="resize: vertical;"
+          ></textarea>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+          <button type="submit" class="btn btn--primary">[ submit survey ]</button>
+          <a href="{% url 'course_detail' course.slug %}" class="btn btn--ghost">[ skip for now ]</a>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .rating-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+  }
+
+  .rating-label input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .rating-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid var(--clr-border);
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    color: var(--clr-muted);
+    background: var(--clr-surface-2);
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    user-select: none;
+  }
+
+  .rating-label input[type="radio"]:checked + .rating-box {
+    border-color: var(--clr-purple);
+    color: var(--clr-purple);
+    background: var(--clr-purple-dim);
+    font-weight: bold;
+  }
+
+  .rating-label:hover .rating-box {
+    border-color: var(--clr-subtle);
+    color: var(--clr-text);
+  }
+
+  .rating-label input[type="radio"]:focus-visible + .rating-box {
+    outline: 2px solid var(--clr-purple);
+    outline-offset: 2px;
+  }
+</style>
+{% endblock %}
