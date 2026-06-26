@@ -1,0 +1,86 @@
+{% extends "panel/base_panel.html" %}
+
+{% block title %}Dashboard — Manage — Indented{% endblock %}
+
+{% block panel_content %}
+<div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;">
+  <h1 style="margin: 0;">Dashboard</h1>
+  <span style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--clr-muted);">// management panel</span>
+</div>
+
+<!-- Stat cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-card__value">{{ stats.courses }}</div>
+    <div class="stat-card__label">courses</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value">{{ stats.lessons }}</div>
+    <div class="stat-card__label">lessons</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value">{{ stats.assignments }}</div>
+    <div class="stat-card__label">assignments</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value">{{ stats.students }}</div>
+    <div class="stat-card__label">students</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value">{{ stats.lesson_completions }}</div>
+    <div class="stat-card__label">lessons completed</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value">{{ stats.assignments_passed }}</div>
+    <div class="stat-card__label">assignments passed</div>
+  </div>
+  <div class="stat-card" style="border-color: {% if stats.unresolved_feedback %}var(--clr-warning){% else %}var(--clr-border){% endif %};">
+    <div class="stat-card__value" style="color: {% if stats.unresolved_feedback %}var(--clr-warning){% else %}var(--clr-success){% endif %};">{{ stats.unresolved_feedback }}</div>
+    <div class="stat-card__label">unresolved reports</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__value">{{ stats.survey_responses }}</div>
+    <div class="stat-card__label">survey responses</div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+
+  <!-- Quick links -->
+  <div>
+    <p class="section-label" style="margin-bottom: 0.75rem;">quick actions</p>
+    <div class="card" style="padding: 1rem;">
+      <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="{% url 'panel:course_create' %}" class="btn btn--primary" style="text-align: left;">[ + new course ]</a>
+        <a href="{% url 'panel:course_list' %}" class="btn btn--ghost" style="text-align: left;">[ manage courses ]</a>
+        <a href="{% url 'panel:students' %}" class="btn btn--ghost" style="text-align: left;">[ view students ]</a>
+        <a href="{% url 'panel:surveys' %}" class="btn btn--ghost" style="text-align: left;">[ survey results ]</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent unresolved feedback -->
+  <div>
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.75rem;">
+      <p class="section-label" style="margin: 0;">unresolved feedback</p>
+      <a href="{% url 'panel:feedback_list' %}" class="action-link">view all →</a>
+    </div>
+    <div class="card" style="padding: 0;">
+      {% if recent_feedback %}
+        {% for report in recent_feedback %}
+          <div style="padding: 0.75rem 1rem; {% if not forloop.last %}border-bottom: 1px solid var(--clr-border);{% endif %}">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <span class="badge badge--{% if report.category == 'bug' %}warning{% else %}purple{% endif %}">{{ report.get_category_display }}</span>
+              <span style="font-size: 0.75rem; color: var(--clr-subtle);">{{ report.submitted_at|date:"M j" }}</span>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--clr-muted); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ report.message }}</p>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding: 1rem; color: var(--clr-subtle); font-family: var(--font-mono); font-size: 0.85rem;">// no unresolved reports</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

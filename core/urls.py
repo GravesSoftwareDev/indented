@@ -23,5 +23,6 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('courses/', include('courses.urls')),
     path('sandbox/', include('sandbox.urls')),
+    path('manage/', include('panel.urls')),
     path('', RedirectView.as_view(url='/courses/', permanent=False)),
 ]

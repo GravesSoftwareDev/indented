@@ -1,0 +1,197 @@
+{% extends "panel/base_panel.html" %}
+
+{% block title %}Survey Results — Manage — Indented{% endblock %}
+
+{% block panel_content %}
+<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem;">
+  <div>
+    <h1 style="margin: 0;">Survey Results</h1>
+    <p style="color: var(--clr-muted); margin: 0.25rem 0 0; font-size: 0.85rem;">
+      {{ selected_course_title }} &nbsp;·&nbsp; {{ total }} response{{ total|pluralize }}
+    </p>
+  </div>
+  <!-- Course filter -->
+  <form method="get" style="display: flex; align-items: center; gap: 0.5rem;">
+    <label for="course-filter" style="font-size: 0.78rem; color: var(--clr-muted); font-family: var(--font-mono);">filter by course</label>
+    <select id="course-filter" name="course" onchange="this.form.submit()" style="font-size: 0.82rem; padding: 0.35rem 0.6rem; width: auto;">
+      <option value="">All courses</option>
+      {% for course in courses %}
+        <option value="{{ course.slug }}" {% if course.slug == selected_course %}selected{% endif %}>{{ course.title }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+{% if total %}
+
+  <!-- Summary stat cards -->
+  <div class="stat-grid" style="grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); margin-bottom: 1.75rem;">
+    <div class="stat-card">
+      <div class="stat-card__value">{{ total }}</div>
+      <div class="stat-card__label">responses</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value">{{ avg_rating|default:"—" }}</div>
+      <div class="stat-card__label">avg. rating</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value">{{ avg_clarity|default:"—" }}</div>
+      <div class="stat-card__label">avg. clarity</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value">{{ recommend_yes }}</div>
+      <div class="stat-card__label">would recommend</div>
+    </div>
+  </div>
+
+  <!-- Charts row -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; margin-bottom: 2rem;">
+
+    <div class="card">
+      <p class="section-label" style="margin-bottom: 0.75rem;">overall rating</p>
+      <canvas id="ratingChart" height="200" role="img" aria-label="Bar chart showing overall rating distribution 1 to 5"></canvas>
+    </div>
+
+    <div class="card">
+      <p class="section-label" style="margin-bottom: 0.75rem;">content understanding</p>
+      <canvas id="clarityChart" height="200" role="img" aria-label="Bar chart showing content clarity rating distribution 1 to 5"></canvas>
+    </div>
+
+    <div class="card" style="display: flex; flex-direction: column; align-items: center;">
+      <p class="section-label" style="margin-bottom: 0.75rem; align-self: flex-start;">would recommend</p>
+      <canvas id="recommendChart" height="200" style="max-width: 200px;" role="img" aria-label="Doughnut chart showing yes no and no answer counts for would recommend"></canvas>
+    </div>
+
+  </div>
+
+  <!-- Text responses -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 2rem;">
+
+    <div>
+      <p class="section-label" style="margin-bottom: 0.75rem;">what they liked most ({{ liked_responses|length }})</p>
+      {% if liked_responses %}
+        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+          {% for r in liked_responses %}
+            <div class="card card--flat" style="padding: 0.75rem 1rem;">
+              <p style="font-size: 0.82rem; color: var(--clr-text); margin-bottom: 0.25rem;">{{ r.liked_most }}</p>
+              <p style="font-size: 0.75rem; color: var(--clr-subtle); font-family: var(--font-mono); margin: 0;">{{ r.user__username }} · {{ r.course__title }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p style="color: var(--clr-subtle); font-size: 0.85rem; font-family: var(--font-mono);">// no responses yet</p>
+      {% endif %}
+    </div>
+
+    <div>
+      <p class="section-label" style="margin-bottom: 0.75rem;">what could be improved ({{ improve_responses|length }})</p>
+      {% if improve_responses %}
+        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+          {% for r in improve_responses %}
+            <div class="card card--flat" style="padding: 0.75rem 1rem;">
+              <p style="font-size: 0.82rem; color: var(--clr-text); margin-bottom: 0.25rem;">{{ r.improve }}</p>
+              <p style="font-size: 0.75rem; color: var(--clr-subtle); font-family: var(--font-mono); margin: 0;">{{ r.user__username }} · {{ r.course__title }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p style="color: var(--clr-subtle); font-size: 0.85rem; font-family: var(--font-mono);">// no responses yet</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+{% else %}
+  <div class="alert alert--info" role="alert">
+    No survey responses yet{% if selected_course %} for this course{% endif %}.
+    {% if selected_course %}<a href="{% url 'panel:surveys' %}">View all courses.</a>{% endif %}
+  </div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if total %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+  const chartData = {{ chart_data|safe }};
+
+  // Shared chart defaults to match terminal aesthetic
+  Chart.defaults.color = '#888780';
+  Chart.defaults.borderColor = '#2A2A2A';
+  Chart.defaults.font.family = "'Courier New', Courier, monospace";
+  Chart.defaults.font.size = 12;
+
+  const purple     = 'rgba(185, 126, 245, 0.7)';
+  const purpleLine = '#B97EF5';
+  const amber      = 'rgba(245, 166, 35, 0.7)';
+  const amberLine  = '#F5A623';
+  const gray       = 'rgba(136, 135, 128, 0.5)';
+  const grayLine   = '#888780';
+
+  const barOptions = {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#888780' } },
+      y: { beginAtZero: true, ticks: { precision: 0, color: '#888780' }, grid: { color: '#1A1A1A' } },
+    },
+  };
+
+  // Overall rating bar chart
+  new Chart(document.getElementById('ratingChart'), {
+    type: 'bar',
+    data: {
+      labels: ['1', '2', '3', '4', '5'],
+      datasets: [{
+        data: chartData.ratings,
+        backgroundColor: purple,
+        borderColor: purpleLine,
+        borderWidth: 1,
+        borderRadius: 3,
+      }],
+    },
+    options: { ...barOptions, plugins: { ...barOptions.plugins, tooltip: { callbacks: { title: (items) => `Rating ${items[0].label}` } } } },
+  });
+
+  // Content clarity bar chart
+  new Chart(document.getElementById('clarityChart'), {
+    type: 'bar',
+    data: {
+      labels: ['1', '2', '3', '4', '5'],
+      datasets: [{
+        data: chartData.clarity,
+        backgroundColor: amber,
+        borderColor: amberLine,
+        borderWidth: 1,
+        borderRadius: 3,
+      }],
+    },
+    options: { ...barOptions, plugins: { ...barOptions.plugins, tooltip: { callbacks: { title: (items) => `Clarity ${items[0].label}` } } } },
+  });
+
+  // Would recommend doughnut
+  new Chart(document.getElementById('recommendChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Yes', 'No', 'No answer'],
+      datasets: [{
+        data: chartData.recommend,
+        backgroundColor: [purple, amber, gray],
+        borderColor: [purpleLine, amberLine, grayLine],
+        borderWidth: 1,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#888780', padding: 12, font: { family: "'Courier New', Courier, monospace", size: 11 } },
+        },
+      },
+    },
+  });
+</script>
+{% endif %}
+{% endblock %}

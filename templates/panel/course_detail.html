@@ -1,0 +1,101 @@
+{% extends "panel/base_panel.html" %}
+
+{% block title %}{{ course.title }} — Manage — Indented{% endblock %}
+
+{% block panel_content %}
+<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem;">
+  <div>
+    <p style="color: var(--clr-muted); margin-bottom: 0.25rem; font-size: 0.85rem;">
+      <a href="{% url 'panel:course_list' %}">Courses</a>
+    </p>
+    <h1 style="margin: 0;">{{ course.title }}</h1>
+    <p style="color: var(--clr-muted); margin: 0.25rem 0 0; font-size: 0.88rem;">{{ course.description }}</p>
+  </div>
+  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+    <a href="{% url 'panel:course_edit' course.slug %}" class="btn btn--ghost">[ edit course ]</a>
+    <a href="{% url 'panel:course_delete' course.slug %}" class="btn btn--ghost" style="color: var(--clr-danger); border-color: var(--clr-danger);">[ delete ]</a>
+    <a href="{% url 'course_detail' course.slug %}" class="btn btn--ghost" target="_blank">[ preview ↗ ]</a>
+  </div>
+</div>
+
+<!-- Lessons -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+  <p class="section-label" style="margin: 0;">lessons</p>
+  <a href="{% url 'panel:lesson_create' course.slug %}" class="btn btn--primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">[ + new lesson ]</a>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden; margin-bottom: 1.5rem;">
+  {% if lessons %}
+    <table class="ptable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>title</th>
+          <th>questions</th>
+          <th>actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lesson in lessons %}
+        <tr>
+          <td style="color: var(--clr-subtle); width: 2.5rem;">{{ lesson.order }}</td>
+          <td>{{ lesson.title }}</td>
+          <td style="color: var(--clr-muted);">{{ lesson.questions.count }}</td>
+          <td>
+            <div style="display: flex; gap: 0.75rem;">
+              <a href="{% url 'panel:question_list' course.slug lesson.slug %}" class="action-link">questions</a>
+              <a href="{% url 'panel:lesson_edit' course.slug lesson.slug %}" class="action-link">edit</a>
+              <a href="{% url 'panel:lesson_delete' course.slug lesson.slug %}" class="action-link action-link--danger">delete</a>
+              <a href="{% url 'lesson_detail' course.slug lesson.slug %}" class="action-link" target="_blank">preview ↗</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div style="padding: 1rem; color: var(--clr-subtle); font-family: var(--font-mono); font-size: 0.85rem;">
+      // no lessons yet — <a href="{% url 'panel:lesson_create' course.slug %}">add the first one</a>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Assignments -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+  <p class="section-label" style="margin: 0;">assignments</p>
+  <a href="{% url 'panel:assignment_create' course.slug %}" class="btn btn--primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">[ + new assignment ]</a>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  {% if assignments %}
+    <table class="ptable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>title</th>
+          <th>actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for assignment in assignments %}
+        <tr>
+          <td style="color: var(--clr-subtle); width: 2.5rem;">{{ assignment.order }}</td>
+          <td>{{ assignment.title }}</td>
+          <td>
+            <div style="display: flex; gap: 0.75rem;">
+              <a href="{% url 'panel:assignment_edit' course.slug assignment.slug %}" class="action-link">edit</a>
+              <a href="{% url 'panel:assignment_delete' course.slug assignment.slug %}" class="action-link action-link--danger">delete</a>
+              <a href="{% url 'assignment_detail' course.slug assignment.slug %}" class="action-link" target="_blank">preview ↗</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div style="padding: 1rem; color: var(--clr-subtle); font-family: var(--font-mono); font-size: 0.85rem;">
+      // no assignments yet — <a href="{% url 'panel:assignment_create' course.slug %}">add one</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

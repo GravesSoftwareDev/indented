@@ -1,0 +1,96 @@
+{% extends "panel/base_panel.html" %}
+
+{% block title %}{{ student.username }} — Students — Manage — Indented{% endblock %}
+
+{% block panel_content %}
+<div style="margin-bottom: 1.5rem;">
+  <p style="color: var(--clr-muted); margin-bottom: 0.25rem; font-size: 0.85rem;">
+    <a href="{% url 'panel:students' %}">Students</a>
+  </p>
+  <h1 style="margin: 0;">{{ student.username }}</h1>
+  <p style="color: var(--clr-muted); font-size: 0.85rem; margin-top: 0.25rem; font-family: var(--font-mono);">
+    {{ student.email|default:"no email" }} &nbsp;·&nbsp; joined {{ student.date_joined|date:"M j, Y" }}
+  </p>
+</div>
+
+{% for cd in course_data %}
+  <div style="margin-bottom: 2rem;">
+    <p class="section-label" style="margin-bottom: 0.75rem;">{{ cd.course.title }}</p>
+
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 0.75rem;">
+      <table class="ptable">
+        <thead>
+          <tr>
+            <th>lesson</th>
+            <th>status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lesson, done in cd.lessons %}
+          <tr>
+            <td style="color: var(--clr-muted);">{{ lesson.title }}</td>
+            <td>
+              {% if done %}
+                <span class="badge badge--success" style="font-weight: bold;">✓ complete</span>
+              {% else %}
+                <span style="color: var(--clr-subtle); font-family: var(--font-mono); font-size: 0.82rem;">— not started</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="2" style="color: var(--clr-subtle);">// no lessons in this course</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if cd.assignments %}
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 0.75rem;">
+      <table class="ptable">
+        <thead>
+          <tr>
+            <th>assignment</th>
+            <th>status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for assignment, passed in cd.assignments %}
+          <tr>
+            <td style="color: var(--clr-muted);">{{ assignment.title }}</td>
+            <td>
+              {% if passed %}
+                <span class="badge badge--success" style="font-weight: bold;">✓ passed</span>
+              {% else %}
+                <span style="color: var(--clr-subtle); font-family: var(--font-mono); font-size: 0.82rem;">— not passed</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if cd.survey %}
+    <div class="card card--flat" style="font-size: 0.85rem; font-family: var(--font-mono);">
+      <p class="section-label" style="margin-bottom: 0.5rem;">survey response</p>
+      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+        <span>overall: <strong style="color: var(--clr-purple);">{{ cd.survey.rating }}/5</strong></span>
+        <span>understanding: <strong style="color: var(--clr-purple);">{{ cd.survey.content_clarity }}/5</strong></span>
+        <span>would recommend: <strong>{% if cd.survey.would_recommend %}yes{% elif cd.survey.would_recommend == False %}no{% else %}no answer{% endif %}</strong></span>
+      </div>
+      {% if cd.survey.liked_most %}
+        <p style="color: var(--clr-muted); margin-bottom: 0.25rem;"><span style="color: var(--clr-subtle);">// liked most:</span> {{ cd.survey.liked_most }}</p>
+      {% endif %}
+      {% if cd.survey.improve %}
+        <p style="color: var(--clr-muted); margin: 0;"><span style="color: var(--clr-subtle);">// improve:</span> {{ cd.survey.improve }}</p>
+      {% endif %}
+    </div>
+    {% else %}
+    <p style="color: var(--clr-subtle); font-size: 0.82rem; font-family: var(--font-mono);">// no survey submitted for this course</p>
+    {% endif %}
+  </div>
+{% empty %}
+  <div class="alert alert--info" role="alert">No courses available yet.</div>
+{% endfor %}
+{% endblock %}

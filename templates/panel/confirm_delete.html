@@ -1,0 +1,22 @@
+{% extends "panel/base_panel.html" %}
+
+{% block title %}Delete {{ object_type }} — Manage — Indented{% endblock %}
+
+{% block panel_content %}
+<div style="max-width: 520px;">
+  <h1 style="margin-bottom: 0.5rem;">Delete {{ object_type }}</h1>
+
+  <div class="alert alert--danger" role="alert" style="margin-bottom: 1.5rem;">
+    Are you sure you want to permanently delete <strong>{{ object_name }}</strong>?
+    {% if warning %}<br><br>{{ warning }}{% endif %}
+  </div>
+
+  <form method="post" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+    {% csrf_token %}
+    <button type="submit" class="btn" style="background: rgba(248,113,113,0.1); color: var(--clr-danger); border-color: var(--clr-danger);">
+      [ yes, delete permanently ]
+    </button>
+    <a href="{{ cancel_url }}" class="btn btn--ghost">[ cancel ]</a>
+  </form>
+</div>
+{% endblock %}

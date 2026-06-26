@@ -1,0 +1,58 @@
+{% extends "panel/base_panel.html" %}
+
+{% block title %}Students — Manage — Indented{% endblock %}
+
+{% block panel_content %}
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;">
+  <div>
+    <h1 style="margin: 0;">Students</h1>
+    <p style="color: var(--clr-muted); margin: 0.25rem 0 0; font-size: 0.85rem;">
+      // {{ student_data|length }} registered &nbsp;·&nbsp; {{ total_lessons }} total lessons &nbsp;·&nbsp; {{ total_assignments }} total assignments
+    </p>
+  </div>
+</div>
+
+{% if student_data %}
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <table class="ptable">
+      <thead>
+        <tr>
+          <th>username</th>
+          <th>joined</th>
+          <th>lessons</th>
+          <th>progress</th>
+          <th>assignments</th>
+          <th>surveys</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sd in student_data %}
+        <tr>
+          <td>
+            <a href="{% url 'panel:student_detail' sd.user.pk %}" style="color: var(--clr-text);">{{ sd.user.username }}</a>
+          </td>
+          <td style="color: var(--clr-muted);">{{ sd.user.date_joined|date:"M j, Y" }}</td>
+          <td style="color: var(--clr-muted);">{{ sd.completed }} / {{ total_lessons }}</td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <div class="prog-bar" role="progressbar" aria-valuenow="{{ sd.lesson_pct }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ sd.lesson_pct }}% of lessons complete">
+                <div class="prog-bar__fill" style="width: {{ sd.lesson_pct }}%;"></div>
+              </div>
+              <span style="font-size: 0.78rem; color: var(--clr-subtle);">{{ sd.lesson_pct }}%</span>
+            </div>
+          </td>
+          <td style="color: var(--clr-muted);">{{ sd.passed }} / {{ total_assignments }}</td>
+          <td style="color: var(--clr-muted);">{{ sd.surveys }}</td>
+          <td>
+            <a href="{% url 'panel:student_detail' sd.user.pk %}" class="action-link">detail →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert--info" role="alert">No students registered yet.</div>
+{% endif %}
+{% endblock %}

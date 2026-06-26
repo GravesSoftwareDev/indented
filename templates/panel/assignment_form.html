@@ -1,0 +1,95 @@
+{% extends "panel/base_panel.html" %}
+
+{% block title %}{{ title }} — Manage — Indented{% endblock %}
+
+{% block panel_content %}
+<div style="margin-bottom: 1.5rem;">
+  <p style="color: var(--clr-muted); margin-bottom: 0.25rem; font-size: 0.85rem;">
+    <a href="{% url 'panel:course_list' %}">Courses</a>
+    / <a href="{% url 'panel:course_detail' course.slug %}">{{ course.title }}</a>
+  </p>
+  <h1 style="margin: 0;">{{ title }}</h1>
+</div>
+
+<div class="card panel-form" style="max-width: 860px;">
+  <form method="post">
+    {% csrf_token %}
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+      <div class="form-group">
+        <label for="{{ form.title.id_for_label }}">title</label>
+        {{ form.title }}
+        {% for e in form.title.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-group">
+          <label for="{{ form.slug.id_for_label }}">slug <span style="color:var(--clr-subtle);font-size:0.7rem;">(auto)</span></label>
+          {{ form.slug }}
+          {% for e in form.slug.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+        </div>
+        <div class="form-group">
+          <label for="{{ form.order.id_for_label }}">order</label>
+          {{ form.order }}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.description.id_for_label }}">description <span style="color:var(--clr-subtle);font-size:0.72rem;">(optional, markdown)</span></label>
+      {{ form.description }}
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.instructions.id_for_label }}">instructions <span style="color:var(--clr-subtle);font-size:0.72rem;">(markdown)</span></label>
+      {{ form.instructions }}
+      {% for e in form.instructions.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.buggy_code.id_for_label }}">buggy code <span style="color:var(--clr-subtle);font-size:0.72rem;">(pre-filled in the editor — contains the bugs to fix)</span></label>
+      {{ form.buggy_code }}
+      {% for e in form.buggy_code.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.expected_output.id_for_label }}">expected output <span style="color:var(--clr-subtle);font-size:0.72rem;">(must match exactly — newline sensitive)</span></label>
+      {{ form.expected_output }}
+      {% for e in form.expected_output.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div class="form-group">
+      <label for="{{ form.test_inputs.id_for_label }}">test inputs <span style="color:var(--clr-subtle);font-size:0.72rem;">(one value per line, fed to input() calls in order)</span></label>
+      {{ form.test_inputs }}
+      <p class="field-help">{{ form.test_inputs.help_text }}</p>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn--primary">[ {{ submit_label }} ]</button>
+      <a href="{{ cancel_url }}" class="btn btn--ghost">[ cancel ]</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  #{{ form.buggy_code.id_for_label }},
+  #{{ form.expected_output.id_for_label }},
+  #{{ form.test_inputs.id_for_label }} {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+</style>
+<script>
+  const titleEl = document.getElementById('{{ form.title.id_for_label }}');
+  const slugEl  = document.getElementById('{{ form.slug.id_for_label }}');
+  let userEdited = slugEl.value !== '';
+  titleEl.addEventListener('input', () => {
+    if (!userEdited) {
+      slugEl.value = titleEl.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    }
+  });
+  slugEl.addEventListener('input', () => { userEdited = true; });
+</script>
+{% endblock %}

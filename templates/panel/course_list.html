@@ -1,0 +1,48 @@
+{% extends "panel/base_panel.html" %}
+
+{% block title %}Courses — Manage — Indented{% endblock %}
+
+{% block panel_content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;">
+  <h1 style="margin: 0;">Courses</h1>
+  <a href="{% url 'panel:course_create' %}" class="btn btn--primary">[ + new course ]</a>
+</div>
+
+{% if courses %}
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <table class="ptable">
+      <thead>
+        <tr>
+          <th>title</th>
+          <th>order</th>
+          <th>lessons</th>
+          <th>assignments</th>
+          <th>actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for course in courses %}
+        <tr>
+          <td>
+            <a href="{% url 'panel:course_detail' course.slug %}" style="color: var(--clr-text); font-weight: normal;">{{ course.title }}</a>
+          </td>
+          <td style="color: var(--clr-muted);">{{ course.order }}</td>
+          <td style="color: var(--clr-muted);">{{ course.lessons.count }}</td>
+          <td style="color: var(--clr-muted);">{{ course.assignments.count }}</td>
+          <td>
+            <div style="display: flex; gap: 0.75rem;">
+              <a href="{% url 'panel:course_detail' course.slug %}" class="action-link">view</a>
+              <a href="{% url 'panel:course_edit' course.slug %}" class="action-link">edit</a>
+              <a href="{% url 'panel:course_delete' course.slug %}" class="action-link action-link--danger">delete</a>
+              <a href="{% url 'course_detail' course.slug %}" class="action-link" target="_blank">preview ↗</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert--info" role="alert">No courses yet. <a href="{% url 'panel:course_create' %}">Create the first one.</a></div>
+{% endif %}
+{% endblock %}

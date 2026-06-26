@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<style>
+  .panel-subnav {
+    background: var(--clr-surface-2);
+    border-bottom: 1px solid var(--clr-border);
+    position: relative;
+    z-index: 5;
+  }
+  .panel-subnav__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .panel-subnav a {
+    display: inline-block;
+    padding: 0.55rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--clr-muted);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .panel-subnav a:hover  { color: var(--clr-text); }
+  .panel-subnav a.active { color: var(--clr-purple); border-bottom-color: var(--clr-purple); }
+
+  /* Panel content wrapper */
+  .panel-body { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  /* Data tables */
+  .ptable { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.85rem; }
+  .ptable th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--clr-muted);
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--clr-border);
+  }
+  .ptable th::before { content: '// '; color: var(--clr-subtle); }
+  .ptable td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--clr-border); color: var(--clr-text); vertical-align: middle; }
+  .ptable tr:last-child td { border-bottom: none; }
+  .ptable tr:hover td { background: var(--clr-surface-2); }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .stat-card { background: var(--clr-surface); border: 1px solid var(--clr-border); border-radius: var(--radius-lg); padding: 1.25rem; }
+  .stat-card__value { font-size: 2rem; font-family: var(--font-mono); color: var(--clr-purple); line-height: 1; margin-bottom: 0.3rem; }
+  .stat-card__label { font-size: 0.75rem; color: var(--clr-muted); letter-spacing: 0.06em; }
+
+  /* Panel form */
+  .panel-form { max-width: 720px; }
+  .panel-form .form-group { margin-bottom: 1.25rem; }
+  .panel-form label::before { content: '' !important; }
+  .panel-form label { font-size: 0.78rem; color: var(--clr-muted); letter-spacing: 0.06em; margin-bottom: 0.35rem; }
+  .panel-form .field-help { font-size: 0.78rem; color: var(--clr-subtle); margin-top: 0.3rem; font-family: var(--font-mono); }
+  .panel-form .field-error { font-size: 0.8rem; color: var(--clr-danger); margin-top: 0.25rem; font-weight: bold; }
+  .panel-form input[type="text"],
+  .panel-form input[type="number"],
+  .panel-form select,
+  .panel-form textarea { font-size: 0.88rem; }
+  .panel-form .form-actions { display: flex; gap: 0.5rem; margin-top: 1.5rem; flex-wrap: wrap; }
+
+  /* Inline action links */
+  .action-link { font-size: 0.8rem; color: var(--clr-muted); text-decoration: none; font-family: var(--font-mono); }
+  .action-link:hover { color: var(--clr-purple); }
+  .action-link--danger:hover { color: var(--clr-danger); }
+
+  /* Progress bar (panel) */
+  .prog-bar { background: var(--clr-surface-2); border-radius: 999px; height: 5px; overflow: hidden; width: 80px; display: inline-block; vertical-align: middle; }
+  .prog-bar__fill { background: var(--clr-purple); height: 100%; border-radius: 999px; }
+
+  @media (max-width: 640px) {
+    .panel-body { padding: 1.25rem 1rem 3rem; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="panel-subnav">
+  <div class="panel-subnav__inner">
+    <a href="{% url 'panel:dashboard' %}"    {% if panel_section == 'dashboard' %}class="active"{% endif %}>// dashboard</a>
+    <a href="{% url 'panel:course_list' %}"  {% if panel_section == 'courses'   %}class="active"{% endif %}>courses</a>
+    <a href="{% url 'panel:students' %}"     {% if panel_section == 'students'  %}class="active"{% endif %}>students</a>
+    <a href="{% url 'panel:feedback_list' %}"{% if panel_section == 'feedback'  %}class="active"{% endif %}>
+      feedback{% if unresolved_count %} <span style="color:var(--clr-warning);">({{ unresolved_count }})</span>{% endif %}
+    </a>
+    <a href="{% url 'panel:surveys' %}"      {% if panel_section == 'surveys'   %}class="active"{% endif %}>surveys</a>
+  </div>
+</div>
+<div class="panel-body">
+  {% block panel_content %}{% endblock %}
+</div>
+{% endblock %}

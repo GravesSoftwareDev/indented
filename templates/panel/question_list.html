@@ -1,0 +1,64 @@
+{% extends "panel/base_panel.html" %}
+
+{% block title %}Questions — {{ lesson.title }} — Manage — Indented{% endblock %}
+
+{% block panel_content %}
+<div style="margin-bottom: 1.5rem;">
+  <p style="color: var(--clr-muted); margin-bottom: 0.25rem; font-size: 0.85rem;">
+    <a href="{% url 'panel:course_list' %}">Courses</a>
+    / <a href="{% url 'panel:course_detail' course.slug %}">{{ course.title }}</a>
+  </p>
+  <h1 style="margin: 0;">{{ lesson.title }}</h1>
+  <p style="color: var(--clr-muted); font-size: 0.85rem; margin-top: 0.25rem;">// check-your-understanding questions</p>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+  <p class="section-label" style="margin: 0;">questions ({{ questions|length }})</p>
+  <div style="display: flex; gap: 0.5rem;">
+    <a href="{% url 'panel:lesson_edit' course.slug lesson.slug %}" class="btn btn--ghost" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">[ edit lesson ]</a>
+    <a href="{% url 'panel:question_create' course.slug lesson.slug %}" class="btn btn--primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">[ + add question ]</a>
+  </div>
+</div>
+
+<div class="card" style="padding: 0; overflow: hidden;">
+  {% if questions %}
+    <table class="ptable">
+      <thead>
+        <tr>
+          <th>order</th>
+          <th>type</th>
+          <th>question</th>
+          <th>actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in questions %}
+        <tr>
+          <td style="color: var(--clr-subtle); width: 3rem;">{{ q.order }}</td>
+          <td>
+            <span class="badge badge--purple" style="font-size: 0.7rem;">{{ q.get_question_type_display }}</span>
+          </td>
+          <td style="max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--clr-muted);">
+            {{ q.question|truncatechars:100 }}
+          </td>
+          <td>
+            <div style="display: flex; gap: 0.75rem;">
+              <a href="{% url 'panel:question_edit' course.slug lesson.slug q.id %}" class="action-link">edit</a>
+              <a href="{% url 'panel:question_delete' course.slug lesson.slug q.id %}" class="action-link action-link--danger">delete</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div style="padding: 1rem; color: var(--clr-subtle); font-family: var(--font-mono); font-size: 0.85rem;">
+      // no questions yet — <a href="{% url 'panel:question_create' course.slug lesson.slug %}">add the first one</a>
+    </div>
+  {% endif %}
+</div>
+
+<div style="margin-top: 1rem;">
+  <a href="{% url 'panel:course_detail' course.slug %}" class="action-link">← back to {{ course.title }}</a>
+</div>
+{% endblock %}
