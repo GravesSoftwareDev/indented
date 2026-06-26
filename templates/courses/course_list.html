@@ -10,12 +10,24 @@
   </p>
 
   {% for course in courses %}
-    <a href="{% url 'course_detail' course.slug %}" style="text-decoration: none;">
-      <div class="card card--accent" style="margin-bottom: 1rem;">
-        <h2 style="margin-bottom: 0.25rem;">{{ course.title }}</h2>
-        <p class="text-muted" style="margin-bottom: 0;">{{ course.description }}</p>
+    {% if course.id in unlocked_ids %}
+      <a href="{% url 'course_detail' course.slug %}" style="text-decoration: none;">
+        <div class="card card--accent" style="margin-bottom: 1rem;">
+          <h2 style="margin-bottom: 0.25rem;">{{ course.title }}</h2>
+          <p class="text-muted" style="margin-bottom: 0;">{{ course.description }}</p>
+        </div>
+      </a>
+    {% else %}
+      <div class="card" style="margin-bottom: 1rem; opacity: 0.45; cursor: not-allowed;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+          <div>
+            <h2 style="margin-bottom: 0.25rem;">{{ course.title }}</h2>
+            <p class="text-muted" style="margin-bottom: 0;">{{ course.description }}</p>
+          </div>
+          <span class="badge" style="background: var(--clr-surface-2); color: var(--clr-muted); border: 1px solid var(--clr-border); white-space: nowrap; flex-shrink: 0;">locked</span>
+        </div>
       </div>
-    </a>
+    {% endif %}
   {% empty %}
     <div class="alert alert--info">No courses available yet.</div>
   {% endfor %}
