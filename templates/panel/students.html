@@ -7,9 +7,10 @@
   <div>
     <h1 style="margin: 0;">Students</h1>
     <p style="color: var(--clr-muted); margin: 0.25rem 0 0; font-size: 0.85rem;">
-      // {{ student_data|length }} registered &nbsp;·&nbsp; {{ total_lessons }} total lessons &nbsp;·&nbsp; {{ total_assignments }} total assignments
+      // {{ student_data|length }} users &nbsp;·&nbsp; {{ total_lessons }} total lessons &nbsp;·&nbsp; {{ total_assignments }} total assignments
     </p>
   </div>
+  <a href="{% url 'panel:student_create' %}" class="btn btn--primary">[ + add student ]</a>
 </div>
 
 {% if student_data %}
@@ -31,6 +32,9 @@
         <tr>
           <td>
             <a href="{% url 'panel:student_detail' sd.user.pk %}" style="color: var(--clr-text);">{{ sd.user.username }}</a>
+            {% if sd.user.is_staff %}
+              <span class="badge badge--warning" style="margin-left: 0.4rem; font-size: 0.7rem;">staff</span>
+            {% endif %}
           </td>
           <td style="color: var(--clr-muted);">{{ sd.user.date_joined|date:"M j, Y" }}</td>
           <td style="color: var(--clr-muted);">{{ sd.completed }} / {{ total_lessons }}</td>
@@ -53,6 +57,6 @@
     </table>
   </div>
 {% else %}
-  <div class="alert alert--info" role="alert">No students registered yet.</div>
+  <div class="alert alert--info" role="alert">No users registered yet.</div>
 {% endif %}
 {% endblock %}

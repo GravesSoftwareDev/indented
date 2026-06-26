@@ -36,7 +36,10 @@ urlpatterns = [
 
     # Students
     path('students/', views.students, name='students'),
+    path('students/new/', views.student_create, name='student_create'),
     path('students/<int:pk>/', views.student_detail, name='student_detail'),
+    path('students/<int:pk>/edit/', views.student_edit, name='student_edit'),
+    path('students/<int:pk>/delete/', views.student_delete, name='student_delete'),
 
     # Surveys
     path('surveys/', views.surveys, name='surveys'),

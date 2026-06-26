@@ -3,14 +3,25 @@
 {% block title %}{{ student.username }} — Students — Manage — Indented{% endblock %}
 
 {% block panel_content %}
-<div style="margin-bottom: 1.5rem;">
-  <p style="color: var(--clr-muted); margin-bottom: 0.25rem; font-size: 0.85rem;">
-    <a href="{% url 'panel:students' %}">Students</a>
-  </p>
-  <h1 style="margin: 0;">{{ student.username }}</h1>
-  <p style="color: var(--clr-muted); font-size: 0.85rem; margin-top: 0.25rem; font-family: var(--font-mono);">
-    {{ student.email|default:"no email" }} &nbsp;·&nbsp; joined {{ student.date_joined|date:"M j, Y" }}
-  </p>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.5rem;">
+  <div>
+    <p style="color: var(--clr-muted); margin-bottom: 0.25rem; font-size: 0.85rem;">
+      <a href="{% url 'panel:students' %}">Students</a>
+    </p>
+    <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+      <h1 style="margin: 0;">{{ student.username }}</h1>
+      {% if student.is_staff %}
+        <span class="badge badge--warning">staff</span>
+      {% endif %}
+    </div>
+    <p style="color: var(--clr-muted); font-size: 0.85rem; margin-top: 0.25rem; font-family: var(--font-mono);">
+      {{ student.email|default:"no email" }} &nbsp;·&nbsp; joined {{ student.date_joined|date:"M j, Y" }}
+    </p>
+  </div>
+  <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+    <a href="{% url 'panel:student_edit' student.pk %}" class="btn btn--ghost" style="font-size: 0.85rem;">[ edit ]</a>
+    <a href="{% url 'panel:student_delete' student.pk %}" class="btn btn--ghost" style="font-size: 0.85rem; color: var(--clr-danger);">[ delete ]</a>
+  </div>
 </div>
 
 {% for cd in course_data %}

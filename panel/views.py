@@ -10,7 +10,7 @@ from courses.models import (
     Course, Lesson, LessonProgress, LessonQuestion,
     Assignment, AssignmentSubmission, FeedbackReport, CourseSurveyResponse,
 )
-from .forms import CourseForm, LessonForm, LessonQuestionForm, AssignmentForm
+from .forms import CourseForm, LessonForm, LessonQuestionForm, AssignmentForm, StudentCreateForm, StudentEditForm
 
 
 def staff_required(view_func):
@@ -345,7 +345,7 @@ def feedback_toggle(request, pk):
 
 @staff_required
 def students(request):
-    users = User.objects.filter(is_staff=False, is_superuser=False).order_by('username')
+    users = User.objects.filter(is_superuser=False).order_by('username')
     total_lessons = Lesson.objects.count()
     total_assignments = Assignment.objects.count()
 
@@ -406,6 +406,71 @@ def student_detail(request, pk):
     return render(request, 'panel/student_detail.html', {
         'student': student,
         'course_data': course_data,
+        'panel_section': 'students',
+    })
+
+
+@staff_required
+def student_create(request):
+    form = StudentCreateForm(request.POST or None)
+    if form.is_valid():
+        user = User.objects.create_user(
+            username=form.cleaned_data['username'],
+            email=form.cleaned_data.get('email', ''),
+            password=form.cleaned_data['password'],
+        )
+        user.is_staff = form.cleaned_data.get('is_staff', False)
+        user.save()
+        return redirect('panel:student_detail', pk=user.pk)
+    return render(request, 'panel/student_form.html', {
+        'form': form,
+        'title': 'Add Student',
+        'submit_label': 'Create Account',
+        'cancel_url': reverse('panel:students'),
+        'panel_section': 'students',
+    })
+
+
+@staff_required
+def student_edit(request, pk):
+    student = get_object_or_404(User, pk=pk)
+    if request.method == 'POST':
+        form = StudentEditForm(request.POST, user=student)
+        if form.is_valid():
+            student.username = form.cleaned_data['username']
+            student.email = form.cleaned_data.get('email', '')
+            student.is_staff = form.cleaned_data.get('is_staff', False)
+            if form.cleaned_data.get('password'):
+                student.set_password(form.cleaned_data['password'])
+            student.save()
+            return redirect('panel:student_detail', pk=student.pk)
+    else:
+        form = StudentEditForm(initial={
+            'username': student.username,
+            'email': student.email,
+            'is_staff': student.is_staff,
+        }, user=student)
+    return render(request, 'panel/student_form.html', {
+        'form': form,
+        'student': student,
+        'title': f'Edit: {student.username}',
+        'submit_label': 'Save Changes',
+        'cancel_url': reverse('panel:student_detail', kwargs={'pk': student.pk}),
+        'panel_section': 'students',
+    })
+
+
+@staff_required
+def student_delete(request, pk):
+    student = get_object_or_404(User, pk=pk)
+    if request.method == 'POST':
+        student.delete()
+        return redirect('panel:students')
+    return render(request, 'panel/confirm_delete.html', {
+        'object_name': student.username,
+        'object_type': 'user',
+        'warning': 'This will permanently delete the account and all progress data for this user.',
+        'cancel_url': reverse('panel:student_detail', kwargs={'pk': student.pk}),
         'panel_section': 'students',
     })
 
