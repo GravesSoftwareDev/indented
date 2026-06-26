@@ -9,7 +9,6 @@
 
 <!-- Filter tabs -->
 <div style="display: flex; gap: 0; margin-bottom: 1.25rem; border-bottom: 1px solid var(--clr-border);">
-  {% for label, value in "Unresolved:unresolved,Resolved:resolved,All:all"|slice_tabs %}{% endfor %}
   <a href="?show=unresolved" style="padding: 0.5rem 1rem; font-family: var(--font-mono); font-size: 0.82rem; text-decoration: none; border-bottom: 2px solid {% if show == 'unresolved' %}var(--clr-purple){% else %}transparent{% endif %}; color: {% if show == 'unresolved' %}var(--clr-purple){% else %}var(--clr-muted){% endif %};">Unresolved ({{ unresolved_count }})</a>
   <a href="?show=resolved"   style="padding: 0.5rem 1rem; font-family: var(--font-mono); font-size: 0.82rem; text-decoration: none; border-bottom: 2px solid {% if show == 'resolved' %}var(--clr-purple){% else %}transparent{% endif %}; color: {% if show == 'resolved' %}var(--clr-purple){% else %}var(--clr-muted){% endif %};">Resolved</a>
   <a href="?show=all"        style="padding: 0.5rem 1rem; font-family: var(--font-mono); font-size: 0.82rem; text-decoration: none; border-bottom: 2px solid {% if show == 'all' %}var(--clr-purple){% else %}transparent{% endif %}; color: {% if show == 'all' %}var(--clr-purple){% else %}var(--clr-muted){% endif %};">All</a>
