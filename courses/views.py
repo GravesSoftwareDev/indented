@@ -9,11 +9,23 @@ from .models import Course, Lesson, LessonProgress, LessonQuestion, Assignment, 
 @login_required
 def course_list(request):
     courses = Course.objects.all()
-    return render(request, 'courses/course_list.html', {'courses': courses})
+    unlocked_ids = {
+        course.id
+        for course in courses
+        if request.user.is_staff or _is_course_unlocked(request.user, course)
+    }
+    return render(request, 'courses/course_list.html', {
+        'courses': courses,
+        'unlocked_ids': unlocked_ids,
+    })
 
 @login_required
 def course_detail(request, slug):
     course = get_object_or_404(Course, slug=slug)
+
+    if not request.user.is_staff and not _is_course_unlocked(request.user, course):
+        return redirect('course_list')
+
     lessons = course.lessons.all()
 
     completed_ids = set(
@@ -66,6 +78,10 @@ def course_detail(request, slug):
 @login_required
 def lesson_detail(request, course_slug, lesson_slug):
     course = get_object_or_404(Course, slug=course_slug)
+
+    if not request.user.is_staff and not _is_course_unlocked(request.user, course):
+        return redirect('course_list')
+
     lesson = get_object_or_404(Lesson, slug=lesson_slug, course=course)
     questions = lesson.questions.all()
 
@@ -87,6 +103,10 @@ def lesson_detail(request, course_slug, lesson_slug):
 @login_required
 def mark_complete(request, course_slug, lesson_slug):
     course = get_object_or_404(Course, slug=course_slug)
+
+    if not request.user.is_staff and not _is_course_unlocked(request.user, course):
+        return redirect('course_list')
+
     lesson = get_object_or_404(Lesson, slug=lesson_slug, course=course)
 
     progress, _ = LessonProgress.objects.get_or_create(
@@ -135,10 +155,38 @@ def _all_lessons_complete(user, course):
     return completed >= total
 
 
+def _is_course_complete(user, course):
+    total = course.lessons.count()
+    if total == 0:
+        return False
+    completed = LessonProgress.objects.filter(
+        user=user, lesson__course=course, completed=True
+    ).count()
+    if completed < total:
+        return False
+    assignment_count = course.assignments.count()
+    if assignment_count == 0:
+        return True
+    passed = AssignmentSubmission.objects.filter(
+        user=user, assignment__course=course, passed=True
+    ).values('assignment').distinct().count()
+    return passed >= assignment_count
+
+
+def _is_course_unlocked(user, course):
+    previous = Course.objects.filter(order__lt=course.order).order_by('-order').first()
+    if previous is None:
+        return True
+    return _is_course_complete(user, previous)
+
+
 @login_required
 def assignment_detail(request, course_slug, assignment_slug):
     course = get_object_or_404(Course, slug=course_slug)
     assignment = get_object_or_404(Assignment, slug=assignment_slug, course=course)
+
+    if not request.user.is_staff and not _is_course_unlocked(request.user, course):
+        return redirect('course_list')
 
     if not request.user.is_staff and not _all_lessons_complete(request.user, course):
         return redirect('course_detail', slug=course_slug)
@@ -164,6 +212,9 @@ def submit_assignment(request, course_slug, assignment_slug):
 
     course = get_object_or_404(Course, slug=course_slug)
     assignment = get_object_or_404(Assignment, slug=assignment_slug, course=course)
+
+    if not request.user.is_staff and not _is_course_unlocked(request.user, course):
+        return JsonResponse({'error': 'Complete the previous course first'}, status=403)
 
     if not request.user.is_staff and not _all_lessons_complete(request.user, course):
         return JsonResponse({'error': 'Complete all lessons first'}, status=403)

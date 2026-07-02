@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.models import User
 from courses.models import Course, Lesson, LessonQuestion, Assignment
 
 
@@ -43,3 +44,40 @@ class AssignmentForm(forms.ModelForm):
             'expected_output': forms.Textarea(attrs={'rows': 5}),
             'test_inputs': forms.Textarea(attrs={'rows': 3}),
         }
+
+
+class StudentCreateForm(forms.Form):
+    username = forms.CharField(max_length=150)
+    email = forms.EmailField(required=False)
+    password = forms.CharField(widget=forms.PasswordInput)
+    is_staff = forms.BooleanField(required=False, label='Staff access')
+
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError('A user with this username already exists.')
+        return username
+
+
+class StudentEditForm(forms.Form):
+    username = forms.CharField(max_length=150)
+    email = forms.EmailField(required=False)
+    password = forms.CharField(
+        widget=forms.PasswordInput,
+        required=False,
+        help_text='Leave blank to keep current password.',
+    )
+    is_staff = forms.BooleanField(required=False, label='Staff access')
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._user = user
+
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        qs = User.objects.filter(username=username)
+        if self._user:
+            qs = qs.exclude(pk=self._user.pk)
+        if qs.exists():
+            raise forms.ValidationError('A user with this username already exists.')
+        return username
