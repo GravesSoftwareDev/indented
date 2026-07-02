@@ -20,7 +20,7 @@
         {{ lesson.content|render_markdown }}
       </div>
 
-      <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--clr-border);">
+      <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--clr-border); display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
         {% if progress.completed %}
           <span class="badge badge--success" style="font-size: 0.85rem; padding: 0.4em 0.8em;">
             ✓ completed {% if progress.completed_at %}on {{ progress.completed_at|date:"M j, Y" }}{% endif %}
@@ -30,6 +30,13 @@
             {% csrf_token %}
             <button type="submit" class="btn btn--accent">[ mark as complete ]</button>
           </form>
+        {% endif %}
+
+        {% if progress.completed %}
+          <a href="{% url 'course_detail' course.slug %}" class="btn btn--ghost">[ back to course ]</a>
+          {% if next_lesson %}
+            <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn--primary">[ next lesson ]</a>
+          {% endif %}
         {% endif %}
       </div>
     </div>
@@ -188,9 +195,11 @@
 
 <script>
   const starterCode = `{{ lesson.starter_code|escapejs }}` || '# write your code here\n';
+  const sandboxStorageKey = `sandbox-code-{{ lesson.id }}`;
+  const savedCode = localStorage.getItem(sandboxStorageKey);
 
   const cmEditor = CodeMirror(document.getElementById('editor'), {
-    value: starterCode,
+    value: savedCode !== null ? savedCode : starterCode,
     mode: 'python',
     theme: 'default',
     lineNumbers: true,
@@ -204,6 +213,10 @@
   });
 
   window.getEditorCode = () => cmEditor.getValue();
+
+  cmEditor.on('change', () => {
+    localStorage.setItem(sandboxStorageKey, cmEditor.getValue());
+  });
 
   // --- Inject copy buttons into all code blocks in lesson content ---
   document.querySelectorAll('#lesson-content pre').forEach((pre) => {

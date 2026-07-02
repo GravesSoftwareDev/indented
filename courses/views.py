@@ -74,11 +74,14 @@ def lesson_detail(request, course_slug, lesson_slug):
         lesson=lesson
     )
 
+    next_lesson = course.lessons.filter(order__gt=lesson.order).order_by('order').first()
+
     return render(request, 'courses/lesson_detail.html', {
         'course': course,
         'lesson': lesson,
         'progress': progress,
         'questions': questions,
+        'next_lesson': next_lesson,
     })
 
 @login_required
