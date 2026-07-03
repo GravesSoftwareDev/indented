@@ -34,6 +34,12 @@ urlpatterns = [
     path('feedback/', views.feedback_list, name='feedback_list'),
     path('feedback/<int:pk>/toggle/', views.feedback_toggle, name='feedback_toggle'),
 
+    # Announcements
+    path('announcements/', views.announcement_list, name='announcement_list'),
+    path('announcements/new/', views.announcement_create, name='announcement_create'),
+    path('announcements/<int:pk>/edit/', views.announcement_edit, name='announcement_edit'),
+    path('announcements/<int:pk>/delete/', views.announcement_delete, name='announcement_delete'),
+
     # Students
     path('students/', views.students, name='students'),
     path('students/new/', views.student_create, name='student_create'),

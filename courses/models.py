@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 class Course(models.Model):
     title = models. CharField(max_length=200)
@@ -136,6 +137,36 @@ class FeedbackReport(models.Model):
 
     def __str__(self):
         return f"{self.get_category_display()} — {self.user or 'anonymous'} — {self.submitted_at:%Y-%m-%d}"
+
+
+class Announcement(models.Model):
+    title      = models.CharField(max_length=200)
+    body       = models.TextField(help_text='Supports the same markdown formatting as lesson content.')
+    starts_at  = models.DateTimeField(help_text='Announcement starts showing to students at this time.')
+    ends_at    = models.DateTimeField(help_text='Announcement stops showing after this time.')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def is_live(self, at=None):
+        at = at or timezone.now()
+        return self.starts_at <= at <= self.ends_at
+
+
+class AnnouncementDismissal(models.Model):
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, related_name='announcement_dismissals')
+    announcement = models.ForeignKey(Announcement, on_delete=models.CASCADE, related_name='dismissals')
+    dismissed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'announcement']
+
+    def __str__(self):
+        return f"{self.user.username} — {self.announcement.title}"
 
 
 class CourseSurveyResponse(models.Model):

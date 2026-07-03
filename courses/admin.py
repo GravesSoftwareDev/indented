@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Lesson, LessonProgress, LessonQuestion, QuestionResponse, Assignment, AssignmentSubmission, FeedbackReport, CourseSurveyResponse
+from .models import Course, Lesson, LessonProgress, LessonQuestion, QuestionResponse, Assignment, AssignmentSubmission, FeedbackReport, CourseSurveyResponse, Announcement, AnnouncementDismissal
 
 class LessonQuestionInline(admin.TabularInline):
     model = LessonQuestion
@@ -47,6 +47,17 @@ class FeedbackReportAdmin(admin.ModelAdmin):
     list_editable = ['resolved']
     readonly_fields = ['user', 'category', 'message', 'page', 'submitted_at']
     ordering = ['-submitted_at']
+
+@admin.register(Announcement)
+class AnnouncementAdmin(admin.ModelAdmin):
+    list_display = ['title', 'starts_at', 'ends_at', 'created_at']
+    ordering = ['-created_at']
+
+@admin.register(AnnouncementDismissal)
+class AnnouncementDismissalAdmin(admin.ModelAdmin):
+    list_display = ['user', 'announcement', 'dismissed_at']
+    readonly_fields = ['user', 'announcement', 'dismissed_at']
+    ordering = ['-dismissed_at']
 
 @admin.register(CourseSurveyResponse)
 class CourseSurveyResponseAdmin(admin.ModelAdmin):

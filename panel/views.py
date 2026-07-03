@@ -3,14 +3,16 @@ from functools import wraps
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.text import slugify
 from django.contrib.auth.models import User
 
 from courses.models import (
     Course, Lesson, LessonProgress, LessonQuestion,
     Assignment, AssignmentSubmission, FeedbackReport, CourseSurveyResponse,
+    Announcement,
 )
-from .forms import CourseForm, LessonForm, LessonQuestionForm, AssignmentForm, StudentCreateForm, StudentEditForm
+from .forms import CourseForm, LessonForm, LessonQuestionForm, AssignmentForm, StudentCreateForm, StudentEditForm, AnnouncementForm
 
 
 def staff_required(view_func):
@@ -339,6 +341,66 @@ def feedback_toggle(request, pk):
         next_url = request.POST.get('next', reverse('panel:feedback_list'))
         return redirect(next_url)
     return redirect('panel:feedback_list')
+
+
+# ─── Announcements ────────────────────────────────────────────────────────────
+
+@staff_required
+def announcement_list(request):
+    now = timezone.now()
+    announcements = Announcement.objects.all()
+    return render(request, 'panel/announcement_list.html', {
+        'announcements': announcements,
+        'now': now,
+        'panel_section': 'announcements',
+    })
+
+
+@staff_required
+def announcement_create(request):
+    form = AnnouncementForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        return redirect('panel:announcement_list')
+    return render(request, 'panel/announcement_form.html', {
+        'form': form,
+        'title': 'New Announcement',
+        'submit_label': 'Create Announcement',
+        'cancel_url': reverse('panel:announcement_list'),
+        'panel_section': 'announcements',
+    })
+
+
+@staff_required
+def announcement_edit(request, pk):
+    announcement = get_object_or_404(Announcement, pk=pk)
+    form = AnnouncementForm(request.POST or None, instance=announcement)
+    if form.is_valid():
+        form.save()
+        return redirect('panel:announcement_list')
+    return render(request, 'panel/announcement_form.html', {
+        'form': form,
+        'announcement': announcement,
+        'title': f'Edit: {announcement.title}',
+        'submit_label': 'Save Changes',
+        'cancel_url': reverse('panel:announcement_list'),
+        'panel_section': 'announcements',
+    })
+
+
+@staff_required
+def announcement_delete(request, pk):
+    announcement = get_object_or_404(Announcement, pk=pk)
+    if request.method == 'POST':
+        announcement.delete()
+        return redirect('panel:announcement_list')
+    return render(request, 'panel/confirm_delete.html', {
+        'object_name': announcement.title,
+        'object_type': 'announcement',
+        'warning': None,
+        'cancel_url': reverse('panel:announcement_list'),
+        'panel_section': 'announcements',
+    })
 
 
 # ─── Students ─────────────────────────────────────────────────────────────────

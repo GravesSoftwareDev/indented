@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
 from django.contrib import messages
-from .models import Course, Lesson, LessonProgress, LessonQuestion, QuestionResponse, Assignment, AssignmentSubmission, FeedbackReport, CourseSurveyResponse
+from .models import Course, Lesson, LessonProgress, LessonQuestion, QuestionResponse, Assignment, AssignmentSubmission, FeedbackReport, CourseSurveyResponse, Announcement, AnnouncementDismissal
 
 @login_required
 def course_list(request):
@@ -362,3 +362,13 @@ def course_survey(request, slug):
 def course_survey_done(request, slug):
     course = get_object_or_404(Course, slug=slug)
     return render(request, 'courses/course_survey_done.html', {'course': course})
+
+
+@login_required
+def dismiss_announcement(request, announcement_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    announcement = get_object_or_404(Announcement, id=announcement_id)
+    AnnouncementDismissal.objects.get_or_create(user=request.user, announcement=announcement)
+    return JsonResponse({'success': True})

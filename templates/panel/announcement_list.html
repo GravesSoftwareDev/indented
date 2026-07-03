@@ -1,0 +1,54 @@
+{% extends "panel/base_panel.html" %}
+
+{% block title %}Announcements — Manage — Indented{% endblock %}
+
+{% block panel_content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.5rem;">
+  <h1 style="margin: 0;">Announcements</h1>
+  <a href="{% url 'panel:announcement_create' %}" class="btn btn--primary">[ + new announcement ]</a>
+</div>
+
+{% if announcements %}
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <table class="ptable">
+      <thead>
+        <tr>
+          <th>title</th>
+          <th>status</th>
+          <th>window</th>
+          <th>dismissed by</th>
+          <th>actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for announcement in announcements %}
+        <tr>
+          <td style="color: var(--clr-text);">{{ announcement.title }}</td>
+          <td>
+            {% if announcement.starts_at > now %}
+              <span class="badge badge--purple">upcoming</span>
+            {% elif announcement.ends_at < now %}
+              <span class="badge">expired</span>
+            {% else %}
+              <span class="badge badge--success">live</span>
+            {% endif %}
+          </td>
+          <td style="color: var(--clr-muted); font-size: 0.82rem;">
+            {{ announcement.starts_at|date:"M j, Y H:i" }} &rarr; {{ announcement.ends_at|date:"M j, Y H:i" }}
+          </td>
+          <td style="color: var(--clr-muted);">{{ announcement.dismissals.count }}</td>
+          <td>
+            <div style="display: flex; gap: 0.75rem;">
+              <a href="{% url 'panel:announcement_edit' announcement.pk %}" class="action-link">edit</a>
+              <a href="{% url 'panel:announcement_delete' announcement.pk %}" class="action-link action-link--danger">delete</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="alert alert--info" role="alert">No announcements yet. <a href="{% url 'panel:announcement_create' %}">Create the first one.</a></div>
+{% endif %}
+{% endblock %}
