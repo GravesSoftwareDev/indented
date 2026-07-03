@@ -68,6 +68,20 @@ class LessonQuestion(models.Model):
         return [c.strip() for c in self.choices.splitlines() if c.strip()]
 
 
+class QuestionResponse(models.Model):
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, related_name='question_responses')
+    question     = models.ForeignKey(LessonQuestion, on_delete=models.CASCADE, related_name='responses')
+    answer       = models.TextField(blank=True, default='')
+    correct      = models.BooleanField(default=False)
+    submitted_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['user', 'question']
+
+    def __str__(self):
+        return f"{self.user.username} — {self.question} — {'✓' if self.correct else '✗'}"
+
+
 class Assignment(models.Model):
     course          = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='assignments')
     title           = models.CharField(max_length=200)

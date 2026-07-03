@@ -21,22 +21,18 @@
       </div>
 
       <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--clr-border); display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-        {% if progress.completed %}
-          <span class="badge badge--success" style="font-size: 0.85rem; padding: 0.4em 0.8em;">
-            ✓ completed {% if progress.completed_at %}on {{ progress.completed_at|date:"M j, Y" }}{% endif %}
-          </span>
-        {% else %}
-          <form method="post" action="{% url 'mark_complete' course.slug lesson.slug %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn--accent">[ mark as complete ]</button>
-          </form>
-        {% endif %}
+        <span id="completed-badge" class="badge badge--success" style="font-size: 0.85rem; padding: 0.4em 0.8em;{% if not progress.completed %} display: none;{% endif %}">
+          ✓ completed <span id="completed-date">{% if progress.completed_at %}on {{ progress.completed_at|date:"M j, Y" }}{% endif %}</span>
+        </span>
 
-        {% if progress.completed %}
-          <a href="{% url 'course_detail' course.slug %}" class="btn btn--ghost">[ back to course ]</a>
-          {% if next_lesson %}
-            <a href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn--primary">[ next lesson ]</a>
-          {% endif %}
+        <form id="mark-complete-form" method="post" action="{% url 'mark_complete' course.slug lesson.slug %}"{% if progress.completed %} style="display: none;"{% endif %}>
+          {% csrf_token %}
+          <button type="submit" class="btn btn--accent">[ mark as complete ]</button>
+        </form>
+
+        <a id="back-to-course-btn" href="{% url 'course_detail' course.slug %}" class="btn btn--ghost"{% if not progress.completed %} style="display: none;"{% endif %}>[ back to course ]</a>
+        {% if next_lesson %}
+          <a id="next-lesson-btn" href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn--primary"{% if not progress.completed %} style="display: none;"{% endif %}>[ next lesson ]</a>
         {% endif %}
       </div>
     </div>
@@ -72,7 +68,7 @@
                 padding: 0.5rem 0.75rem;
                 outline: none;
               "
-            ></textarea>
+            >{{ question.saved_response.answer|default:'' }}</textarea>
             <button class="btn btn--primary" style="padding: 0.4rem 0.9rem; flex-shrink: 0;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
           </div>
 
@@ -83,6 +79,7 @@
               id="answer-{{ question.id }}"
               placeholder="type your answer..."
               aria-label="Your answer for question {{ forloop.counter }}"
+              value="{{ question.saved_response.answer|default:'' }}"
               onkeydown="if(event.key==='Enter') checkAnswer({{ question.id }})"
               style="
                 flex: 1;
@@ -100,19 +97,19 @@
           </div>
 
         {% elif question.question_type == 'true_false' %}
-          <input type="hidden" id="answer-{{ question.id }}" value="">
+          <input type="hidden" id="answer-{{ question.id }}" value="{{ question.saved_response.answer|default:'' }}">
           <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <button class="btn btn--ghost tf-btn" data-qid="{{ question.id }}" data-value="True" onclick="selectTF(this)" style="min-width: 5rem;">[ True ]</button>
-            <button class="btn btn--ghost tf-btn" data-qid="{{ question.id }}" data-value="False" onclick="selectTF(this)" style="min-width: 5rem;">[ False ]</button>
+            <button class="btn {% if question.saved_response.answer == 'True' %}btn--primary{% else %}btn--ghost{% endif %} tf-btn" data-qid="{{ question.id }}" data-value="True" onclick="selectTF(this)" style="min-width: 5rem;">[ True ]</button>
+            <button class="btn {% if question.saved_response.answer == 'False' %}btn--primary{% else %}btn--ghost{% endif %} tf-btn" data-qid="{{ question.id }}" data-value="False" onclick="selectTF(this)" style="min-width: 5rem;">[ False ]</button>
             <button class="btn btn--primary" style="padding: 0.4rem 0.9rem; margin-left: auto;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
           </div>
 
         {% elif question.question_type == 'multiple_choice' %}
-          <input type="hidden" id="answer-{{ question.id }}" value="">
+          <input type="hidden" id="answer-{{ question.id }}" value="{{ question.saved_response.answer|default:'' }}">
           <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem;">
             {% for choice in question.get_choices %}
               <button
-                class="btn btn--ghost mc-btn"
+                class="btn {% if question.saved_response.answer == choice %}btn--primary{% else %}btn--ghost{% endif %} mc-btn"
                 data-qid="{{ question.id }}"
                 data-value="{{ choice }}"
                 onclick="selectMC(this)"
@@ -123,9 +120,9 @@
           <button class="btn btn--primary" style="padding: 0.4rem 0.9rem;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
 
         {% elif question.question_type == 'ordering' %}
-          <input type="hidden" id="answer-{{ question.id }}" value="">
-          <div class="order-list" data-qid="{{ question.id }}" style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.6rem;">
-            {% for choice in question.get_choices %}
+          <input type="hidden" id="answer-{{ question.id }}" value="{{ question.saved_response.answer|default:'' }}">
+          <div class="order-list" data-qid="{{ question.id }}" data-shuffle="{% if question.saved_response %}false{% else %}true{% endif %}" style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.6rem;">
+            {% for choice in question.display_choices %}
               <div class="order-item" data-qid="{{ question.id }}" data-value="{{ choice }}" style="display: flex; gap: 0.4rem; align-items: center;">
                 <span style="
                   flex: 1;
@@ -217,6 +214,36 @@
   cmEditor.on('change', () => {
     localStorage.setItem(sandboxStorageKey, cmEditor.getValue());
   });
+
+  // --- Mark lesson complete without a full page reload ---
+  const markCompleteForm = document.getElementById('mark-complete-form');
+  if (markCompleteForm) {
+    markCompleteForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const csrfToken = document.cookie.split(';')
+        .find(c => c.trim().startsWith('csrftoken='))
+        ?.split('=')[1];
+
+      fetch(markCompleteForm.action, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) return;
+        markCompleteForm.style.display = 'none';
+        document.getElementById('completed-date').textContent = data.completed_at ? `on ${data.completed_at}` : '';
+        document.getElementById('completed-badge').style.display = '';
+        const backBtn = document.getElementById('back-to-course-btn');
+        if (backBtn) backBtn.style.display = '';
+        const nextBtn = document.getElementById('next-lesson-btn');
+        if (nextBtn) nextBtn.style.display = '';
+      });
+    });
+  }
 
   // --- Inject copy buttons into all code blocks in lesson content ---
   document.querySelectorAll('#lesson-content pre').forEach((pre) => {
@@ -315,17 +342,34 @@
     document.getElementById(`answer-${qid}`).value = btn.dataset.value;
   }
 
-  // --- Shuffle ordering lists on load ---
+  // --- Shuffle ordering lists on load (skip if a saved order exists) ---
   document.querySelectorAll('.order-list').forEach(list => {
     const items = Array.from(list.querySelectorAll('.order-item'));
-    for (let i = items.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [items[i], items[j]] = [items[j], items[i]];
+    if (list.dataset.shuffle === 'true') {
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      items.forEach(item => list.appendChild(item));
     }
-    items.forEach(item => list.appendChild(item));
     const qid = list.dataset.qid;
     document.getElementById(`answer-${qid}`).value = items.map(i => i.dataset.value).join('\n');
   });
+
+  // --- Render a check result ---
+  function showResult(questionId, qType, correct, expected) {
+    const resultEl = document.getElementById(`result-${questionId}`);
+    if (correct) {
+      resultEl.style.color = '#4ADE80';
+      resultEl.textContent = '✓ correct!';
+    } else {
+      resultEl.style.color = '#F87171';
+      let hint = '';
+      if (qType === 'output' || qType === 'short_answer') hint = ` — expected: ${expected}`;
+      else if (qType === 'ordering') hint = ` — correct order: ${expected}`;
+      resultEl.textContent = `✗ not quite${hint}`;
+    }
+  }
 
   // --- Answer checker ---
   function checkAnswer(questionId) {
@@ -353,23 +397,19 @@
       body: `answer=${encodeURIComponent(userAnswer)}`,
     })
     .then(r => r.json())
-    .then(data => {
-      if (data.correct) {
-        resultEl.style.color = '#4ADE80';
-        resultEl.textContent = '✓ correct!';
-      } else {
-        resultEl.style.color = '#F87171';
-        let hint = '';
-        if (qType === 'output' || qType === 'short_answer') hint = ` — expected: ${data.expected}`;
-        else if (qType === 'ordering') hint = ` — correct order: ${data.expected}`;
-        resultEl.textContent = `✗ not quite${hint}`;
-      }
-    })
+    .then(data => showResult(questionId, qType, data.correct, data.expected))
     .catch(() => {
       resultEl.style.color = 'var(--clr-muted)';
       resultEl.textContent = '# something went wrong, try again';
     });
   }
+
+  // --- Restore previously-submitted results for this user ---
+  const initialResults = {{ initial_results_json|safe }};
+  Object.entries(initialResults).forEach(([qid, r]) => {
+    const qType = document.getElementById(`question-${qid}`).dataset.type;
+    showResult(qid, qType, r.correct, r.expected);
+  });
 </script>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
