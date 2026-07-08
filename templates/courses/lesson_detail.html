@@ -372,6 +372,8 @@
   }
 
   // --- Answer checker ---
+  const checkRequestSeq = {};
+
   function checkAnswer(questionId) {
     const answerEl = document.getElementById(`answer-${questionId}`);
     const userAnswer = answerEl.value.trim();
@@ -388,6 +390,9 @@
       .find(c => c.trim().startsWith('csrftoken='))
       ?.split('=')[1];
 
+    const seq = (checkRequestSeq[questionId] || 0) + 1;
+    checkRequestSeq[questionId] = seq;
+
     fetch(`/courses/question/${questionId}/check/`, {
       method: 'POST',
       headers: {
@@ -397,8 +402,12 @@
       body: `answer=${encodeURIComponent(userAnswer)}`,
     })
     .then(r => r.json())
-    .then(data => showResult(questionId, qType, data.correct, data.expected))
+    .then(data => {
+      if (checkRequestSeq[questionId] !== seq) return;
+      showResult(questionId, qType, data.correct, data.expected);
+    })
     .catch(() => {
+      if (checkRequestSeq[questionId] !== seq) return;
       resultEl.style.color = 'var(--clr-muted)';
       resultEl.textContent = '# something went wrong, try again';
     });
