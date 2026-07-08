@@ -74,7 +74,7 @@
               <span class="badge badge--{% if report.category == 'bug' %}warning{% else %}purple{% endif %}">{{ report.get_category_display }}</span>
               <span style="font-size: 0.75rem; color: var(--clr-subtle);">{{ report.submitted_at|date:"M j" }}</span>
             </div>
-            <p style="font-size: 0.82rem; color: var(--clr-muted); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ report.message }}</p>
+            <p style="font-size: 0.82rem; color: var(--clr-muted); margin: 0; white-space: pre-wrap; overflow-wrap: anywhere;">{{ report.message }}</p>
           </div>
         {% endfor %}
       {% else %}
