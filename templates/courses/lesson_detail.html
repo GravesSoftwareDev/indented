@@ -526,7 +526,7 @@ def _make_input_fn(responses):
         pyodide.runPython(`
 import sys, io, builtins
 sys.stdout = _LiveStream('stdout')
-sys.stderr = _LiveStream('stderr')
+sys.stderr = io.StringIO()
 builtins.input = _make_input_fn(list(__current_responses__))
         `);
         pyodide.runPython(code);
@@ -540,7 +540,10 @@ builtins.input = _make_input_fn(list(__current_responses__))
           history.push({ prompt, answer });
           responses.push(answer);
         } else {
-          termWrite(e.message || 'Unknown error', '#F87171', true);
+          let errMsg = '';
+          try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
+          catch (_) { errMsg = e.message || 'Unknown error'; }
+          termWrite(errMsg, '#F87171', true);
           return;
         }
       }
