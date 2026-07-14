@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 class Course(models.Model):
     title = models. CharField(max_length=200)
@@ -68,6 +69,20 @@ class LessonQuestion(models.Model):
         return [c.strip() for c in self.choices.splitlines() if c.strip()]
 
 
+class QuestionResponse(models.Model):
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, related_name='question_responses')
+    question     = models.ForeignKey(LessonQuestion, on_delete=models.CASCADE, related_name='responses')
+    answer       = models.TextField(blank=True, default='')
+    correct      = models.BooleanField(default=False)
+    submitted_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['user', 'question']
+
+    def __str__(self):
+        return f"{self.user.username} — {self.question} — {'✓' if self.correct else '✗'}"
+
+
 class Assignment(models.Model):
     course          = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='assignments')
     title           = models.CharField(max_length=200)
@@ -122,6 +137,36 @@ class FeedbackReport(models.Model):
 
     def __str__(self):
         return f"{self.get_category_display()} — {self.user or 'anonymous'} — {self.submitted_at:%Y-%m-%d}"
+
+
+class Announcement(models.Model):
+    title      = models.CharField(max_length=200)
+    body       = models.TextField(help_text='Supports the same markdown formatting as lesson content.')
+    starts_at  = models.DateTimeField(help_text='Announcement starts showing to students at this time.')
+    ends_at    = models.DateTimeField(help_text='Announcement stops showing after this time.')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    def is_live(self, at=None):
+        at = at or timezone.now()
+        return self.starts_at <= at <= self.ends_at
+
+
+class AnnouncementDismissal(models.Model):
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, related_name='announcement_dismissals')
+    announcement = models.ForeignKey(Announcement, on_delete=models.CASCADE, related_name='dismissals')
+    dismissed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'announcement']
+
+    def __str__(self):
+        return f"{self.user.username} — {self.announcement.title}"
 
 
 class CourseSurveyResponse(models.Model):

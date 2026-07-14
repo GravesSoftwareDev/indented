@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.http import JsonResponse
 from django.contrib import messages
-from .models import Course, Lesson, LessonProgress, LessonQuestion, Assignment, AssignmentSubmission, FeedbackReport, CourseSurveyResponse
+from .models import Course, Lesson, LessonProgress, LessonQuestion, QuestionResponse, Assignment, AssignmentSubmission, FeedbackReport, CourseSurveyResponse, Announcement, AnnouncementDismissal
 
 @login_required
 def course_list(request):
@@ -83,18 +83,46 @@ def lesson_detail(request, course_slug, lesson_slug):
         return redirect('course_list')
 
     lesson = get_object_or_404(Lesson, slug=lesson_slug, course=course)
-    questions = lesson.questions.all()
+    questions = list(lesson.questions.all())
+
+    saved_responses = {
+        r.question_id: r
+        for r in QuestionResponse.objects.filter(user=request.user, question__in=questions)
+    }
+
+    initial_results = {}
+    for question in questions:
+        resp = saved_responses.get(question.id)
+        question.saved_response = resp
+
+        choices = question.get_choices()
+        if question.question_type == 'ordering' and resp and resp.answer:
+            saved_order = [line.strip() for line in resp.answer.split('\n') if line.strip()]
+            if sorted(saved_order) == sorted(choices):
+                choices = saved_order
+        question.display_choices = choices
+
+        if resp:
+            if question.question_type == 'ordering':
+                expected = None if resp.correct else ' → '.join(question.get_choices())
+            else:
+                expected = None if resp.correct else question.expected_answer.strip()
+            initial_results[question.id] = {'correct': resp.correct, 'expected': expected}
 
     progress, _ = LessonProgress.objects.get_or_create(
         user=request.user,
         lesson=lesson
     )
 
+    next_lesson = course.lessons.filter(order__gt=lesson.order).order_by('order').first()
+
     return render(request, 'courses/lesson_detail.html', {
         'course': course,
         'lesson': lesson,
         'progress': progress,
         'questions': questions,
+        'next_lesson': next_lesson,
+        'initial_results_json': json.dumps(initial_results),
     })
 
 @login_required
@@ -114,6 +142,12 @@ def mark_complete(request, course_slug, lesson_slug):
     progress.completed_at = timezone.now()
     progress.save()
 
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'completed_at': f'{progress.completed_at:%b} {progress.completed_at.day}, {progress.completed_at:%Y}',
+        })
+
     return redirect('lesson_detail', course_slug=course_slug, lesson_slug=lesson_slug)
 
 @login_required
@@ -128,6 +162,10 @@ def check_answer(request, question_id):
         correct_order = question.get_choices()
         user_order = [item.strip() for item in user_answer.split('\n') if item.strip()]
         correct = [i.lower() for i in user_order] == [i.lower() for i in correct_order]
+        QuestionResponse.objects.update_or_create(
+            user=request.user, question=question,
+            defaults={'answer': user_answer, 'correct': correct},
+        )
         return JsonResponse({
             'correct': correct,
             'expected': ' → '.join(correct_order) if not correct else None,
@@ -135,6 +173,11 @@ def check_answer(request, question_id):
 
     expected = question.expected_answer.strip()
     correct = user_answer.lower() == expected.lower()
+
+    QuestionResponse.objects.update_or_create(
+        user=request.user, question=question,
+        defaults={'answer': user_answer, 'correct': correct},
+    )
 
     return JsonResponse({
         'correct': correct,
@@ -319,3 +362,13 @@ def course_survey(request, slug):
 def course_survey_done(request, slug):
     course = get_object_or_404(Course, slug=slug)
     return render(request, 'courses/course_survey_done.html', {'course': course})
+
+
+@login_required
+def dismiss_announcement(request, announcement_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+
+    announcement = get_object_or_404(Announcement, id=announcement_id)
+    AnnouncementDismissal.objects.get_or_create(user=request.user, announcement=announcement)
+    return JsonResponse({'success': True})

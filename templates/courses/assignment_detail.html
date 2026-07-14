@@ -225,13 +225,12 @@
 
   function clearTerminal() { terminal.innerHTML = ''; }
 
-  function requestInput(prompt, history) {
+  window.__stream_write__ = function (streamName, text) {
+    termWrite(text, streamName === 'stderr' ? '#F87171' : '#E8E6E1', streamName === 'stderr');
+  };
+
+  function requestInput(prompt) {
     return new Promise((resolve) => {
-      clearTerminal();
-      for (const entry of history) {
-        termWrite(entry.prompt, '#E8E6E1');
-        termWrite(entry.answer + '\n', '#B97EF5');
-      }
       if (prompt) termWrite(prompt, '#E8E6E1');
       const cursor = document.createElement('input');
       cursor.type = 'text';
@@ -264,6 +263,14 @@ import sys, io, builtins, js
 
 class InputNeeded(Exception):
     pass
+
+class _LiveStream(io.TextIOBase):
+    def __init__(self, name):
+        self.name = name
+    def write(self, s):
+        if s:
+            js.window.__stream_write__(self.name, s)
+        return len(s)
 
 def _make_input_fn(responses):
     call_index = [0]
@@ -317,22 +324,18 @@ def _make_input_fn_preset(responses):
     try {
       pyodide.runPython(`
 import sys, io, builtins
-sys.stdout = io.StringIO()
+sys.stdout = _LiveStream('stdout')
 sys.stderr = io.StringIO()
 builtins.input = _make_input_fn_preset(list(__current_responses__))
       `);
       pyodide.runPython(code);
-      const out = pyodide.runPython('sys.stdout.getvalue()');
-      const err = pyodide.runPython('sys.stderr.getvalue()');
-      if (out) termWrite(out, '#E8E6E1');
-      if (err) termWrite(err, '#F87171', true);
     } catch (e) {
-      let errMsg = '';
-      try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
-      catch (_) { errMsg = e.message || 'Unknown error'; }
-      if (e.type === 'InputNeeded' || (errMsg && errMsg.includes('InputNeeded'))) {
+      if (e.type === 'InputNeeded' || (e.message && e.message.includes('InputNeeded'))) {
         termWrite('// not enough test inputs — check the assignment configuration\n', '#FACC15', true);
       } else {
+        let errMsg = '';
+        try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
+        catch (_) { errMsg = e.message || 'Unknown error'; }
         termWrite(errMsg, '#F87171', true);
       }
     }
@@ -343,38 +346,29 @@ builtins.input = _make_input_fn_preset(list(__current_responses__))
     const responses = history.map(h => h.answer);
     for (let attempt = 0; attempt <= MAX; attempt++) {
       pyodide.globals.set('__current_responses__', pyodide.toPy(responses));
+      clearTerminal();
+      for (const entry of history) {
+        termWrite(entry.prompt, '#E8E6E1');
+        termWrite(entry.answer + '\n', '#B97EF5');
+      }
       try {
         pyodide.runPython(`
 import sys, io, builtins
-sys.stdout = io.StringIO()
+sys.stdout = _LiveStream('stdout')
 sys.stderr = io.StringIO()
 builtins.input = _make_input_fn(list(__current_responses__))
         `);
         pyodide.runPython(code);
-        clearTerminal();
-        for (const entry of history) {
-          termWrite(entry.prompt, '#E8E6E1');
-          termWrite(entry.answer + '\n', '#B97EF5');
-        }
-        const out = pyodide.runPython('sys.stdout.getvalue()');
-        const err = pyodide.runPython('sys.stderr.getvalue()');
-        if (out) termWrite(out, '#E8E6E1');
-        if (err) termWrite(err, '#F87171', true);
         return;
       } catch (e) {
         const isInputNeeded = e.type === 'InputNeeded' || (e.message && e.message.includes('InputNeeded'));
         if (isInputNeeded) {
           const prompt = window.__pending_prompt__ || '';
           window.__pending_prompt__ = '';
-          const answer = await requestInput(prompt, history);
+          const answer = await requestInput(prompt);
           history.push({ prompt, answer });
           responses.push(answer);
         } else {
-          clearTerminal();
-          for (const entry of history) {
-            termWrite(entry.prompt, '#E8E6E1');
-            termWrite(entry.answer + '\n', '#B97EF5');
-          }
           let errMsg = '';
           try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
           catch (_) { errMsg = e.message || 'Unknown error'; }

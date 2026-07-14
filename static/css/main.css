@@ -393,6 +393,54 @@ select:focus {
 .errorlist { list-style: none; margin-bottom: 0.5rem; }
 .errorlist li { font-size: 0.82rem; color: var(--clr-danger); }
 
+/* --- Announcement modal --- */
+.announcement-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 1000;
+}
+
+.announcement-modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-left: 3px solid var(--clr-purple);
+  margin-bottom: 0;
+}
+
+.announcement-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.announcement-modal__close {
+  background: none;
+  border: none;
+  color: var(--clr-muted);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+.announcement-modal__close:hover { color: var(--clr-text); }
+
+.announcement-modal__body { margin-bottom: 1.5rem; }
+.announcement-modal__body p:last-child { margin-bottom: 0; }
+
+.announcement-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 /* --- Lesson content --- */
 .lesson-content { font-family: var(--font-sans); font-size: 0.95rem; line-height: 1.8; }
 .lesson-content h2,

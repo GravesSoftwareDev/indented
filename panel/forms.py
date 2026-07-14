@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from courses.models import Course, Lesson, LessonQuestion, Assignment
+from courses.models import Course, Lesson, LessonQuestion, Assignment, Announcement
 
 
 class CourseForm(forms.ModelForm):
@@ -44,6 +44,32 @@ class AssignmentForm(forms.ModelForm):
             'expected_output': forms.Textarea(attrs={'rows': 5}),
             'test_inputs': forms.Textarea(attrs={'rows': 3}),
         }
+
+
+class AnnouncementForm(forms.ModelForm):
+    starts_at = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'),
+        input_formats=['%Y-%m-%dT%H:%M'],
+    )
+    ends_at = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'),
+        input_formats=['%Y-%m-%dT%H:%M'],
+    )
+
+    class Meta:
+        model = Announcement
+        fields = ['title', 'body', 'starts_at', 'ends_at']
+        widgets = {
+            'body': forms.Textarea(attrs={'rows': 10}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        starts_at = cleaned_data.get('starts_at')
+        ends_at = cleaned_data.get('ends_at')
+        if starts_at and ends_at and ends_at <= starts_at:
+            raise forms.ValidationError('End time must be after the start time.')
+        return cleaned_data
 
 
 class StudentCreateForm(forms.Form):

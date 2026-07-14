@@ -20,16 +20,19 @@
         {{ lesson.content|render_markdown }}
       </div>
 
-      <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--clr-border);">
-        {% if progress.completed %}
-          <span class="badge badge--success" style="font-size: 0.85rem; padding: 0.4em 0.8em;">
-            ✓ completed {% if progress.completed_at %}on {{ progress.completed_at|date:"M j, Y" }}{% endif %}
-          </span>
-        {% else %}
-          <form method="post" action="{% url 'mark_complete' course.slug lesson.slug %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn--accent">[ mark as complete ]</button>
-          </form>
+      <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--clr-border); display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <span id="completed-badge" class="badge badge--success" style="font-size: 0.85rem; padding: 0.4em 0.8em;{% if not progress.completed %} display: none;{% endif %}">
+          ✓ completed <span id="completed-date">{% if progress.completed_at %}on {{ progress.completed_at|date:"M j, Y" }}{% endif %}</span>
+        </span>
+
+        <form id="mark-complete-form" method="post" action="{% url 'mark_complete' course.slug lesson.slug %}"{% if progress.completed %} style="display: none;"{% endif %}>
+          {% csrf_token %}
+          <button type="submit" class="btn btn--accent">[ mark as complete ]</button>
+        </form>
+
+        <a id="back-to-course-btn" href="{% url 'course_detail' course.slug %}" class="btn btn--ghost"{% if not progress.completed %} style="display: none;"{% endif %}>[ back to course ]</a>
+        {% if next_lesson %}
+          <a id="next-lesson-btn" href="{% url 'lesson_detail' course.slug next_lesson.slug %}" class="btn btn--primary"{% if not progress.completed %} style="display: none;"{% endif %}>[ next lesson ]</a>
         {% endif %}
       </div>
     </div>
@@ -65,7 +68,7 @@
                 padding: 0.5rem 0.75rem;
                 outline: none;
               "
-            ></textarea>
+            >{{ question.saved_response.answer|default:'' }}</textarea>
             <button class="btn btn--primary" style="padding: 0.4rem 0.9rem; flex-shrink: 0;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
           </div>
 
@@ -76,6 +79,7 @@
               id="answer-{{ question.id }}"
               placeholder="type your answer..."
               aria-label="Your answer for question {{ forloop.counter }}"
+              value="{{ question.saved_response.answer|default:'' }}"
               onkeydown="if(event.key==='Enter') checkAnswer({{ question.id }})"
               style="
                 flex: 1;
@@ -93,19 +97,19 @@
           </div>
 
         {% elif question.question_type == 'true_false' %}
-          <input type="hidden" id="answer-{{ question.id }}" value="">
+          <input type="hidden" id="answer-{{ question.id }}" value="{{ question.saved_response.answer|default:'' }}">
           <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <button class="btn btn--ghost tf-btn" data-qid="{{ question.id }}" data-value="True" onclick="selectTF(this)" style="min-width: 5rem;">[ True ]</button>
-            <button class="btn btn--ghost tf-btn" data-qid="{{ question.id }}" data-value="False" onclick="selectTF(this)" style="min-width: 5rem;">[ False ]</button>
+            <button class="btn {% if question.saved_response.answer == 'True' %}btn--primary{% else %}btn--ghost{% endif %} tf-btn" data-qid="{{ question.id }}" data-value="True" onclick="selectTF(this)" style="min-width: 5rem;">[ True ]</button>
+            <button class="btn {% if question.saved_response.answer == 'False' %}btn--primary{% else %}btn--ghost{% endif %} tf-btn" data-qid="{{ question.id }}" data-value="False" onclick="selectTF(this)" style="min-width: 5rem;">[ False ]</button>
             <button class="btn btn--primary" style="padding: 0.4rem 0.9rem; margin-left: auto;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
           </div>
 
         {% elif question.question_type == 'multiple_choice' %}
-          <input type="hidden" id="answer-{{ question.id }}" value="">
+          <input type="hidden" id="answer-{{ question.id }}" value="{{ question.saved_response.answer|default:'' }}">
           <div style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem;">
             {% for choice in question.get_choices %}
               <button
-                class="btn btn--ghost mc-btn"
+                class="btn {% if question.saved_response.answer == choice %}btn--primary{% else %}btn--ghost{% endif %} mc-btn"
                 data-qid="{{ question.id }}"
                 data-value="{{ choice }}"
                 onclick="selectMC(this)"
@@ -116,9 +120,9 @@
           <button class="btn btn--primary" style="padding: 0.4rem 0.9rem;" onclick="checkAnswer({{ question.id }})">[ check ]</button>
 
         {% elif question.question_type == 'ordering' %}
-          <input type="hidden" id="answer-{{ question.id }}" value="">
-          <div class="order-list" data-qid="{{ question.id }}" style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.6rem;">
-            {% for choice in question.get_choices %}
+          <input type="hidden" id="answer-{{ question.id }}" value="{{ question.saved_response.answer|default:'' }}">
+          <div class="order-list" data-qid="{{ question.id }}" data-shuffle="{% if question.saved_response %}false{% else %}true{% endif %}" style="display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.6rem;">
+            {% for choice in question.display_choices %}
               <div class="order-item" data-qid="{{ question.id }}" data-value="{{ choice }}" style="display: flex; gap: 0.4rem; align-items: center;">
                 <span style="
                   flex: 1;
@@ -189,9 +193,11 @@
 
 <script>
   const starterCode = `{{ lesson.starter_code|escapejs }}` || '# write your code here\n';
+  const sandboxStorageKey = `sandbox-code-{{ lesson.id }}`;
+  const savedCode = localStorage.getItem(sandboxStorageKey);
 
   const cmEditor = CodeMirror(document.getElementById('editor'), {
-    value: starterCode,
+    value: savedCode !== null ? savedCode : starterCode,
     mode: 'python',
     theme: 'default',
     lineNumbers: true,
@@ -205,6 +211,40 @@
   });
 
   window.getEditorCode = () => cmEditor.getValue();
+
+  cmEditor.on('change', () => {
+    localStorage.setItem(sandboxStorageKey, cmEditor.getValue());
+  });
+
+  // --- Mark lesson complete without a full page reload ---
+  const markCompleteForm = document.getElementById('mark-complete-form');
+  if (markCompleteForm) {
+    markCompleteForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const csrfToken = document.cookie.split(';')
+        .find(c => c.trim().startsWith('csrftoken='))
+        ?.split('=')[1];
+
+      fetch(markCompleteForm.action, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) return;
+        markCompleteForm.style.display = 'none';
+        document.getElementById('completed-date').textContent = data.completed_at ? `on ${data.completed_at}` : '';
+        document.getElementById('completed-badge').style.display = '';
+        const backBtn = document.getElementById('back-to-course-btn');
+        if (backBtn) backBtn.style.display = '';
+        const nextBtn = document.getElementById('next-lesson-btn');
+        if (nextBtn) nextBtn.style.display = '';
+      });
+    });
+  }
 
   // --- Inject copy buttons into all code blocks in lesson content ---
   document.querySelectorAll('#lesson-content pre').forEach((pre) => {
@@ -312,19 +352,38 @@
     document.getElementById(`answer-${qid}`).value = btn.dataset.value;
   }
 
-  // --- Shuffle ordering lists on load ---
+  // --- Shuffle ordering lists on load (skip if a saved order exists) ---
   document.querySelectorAll('.order-list').forEach(list => {
     const items = Array.from(list.querySelectorAll('.order-item'));
-    for (let i = items.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [items[i], items[j]] = [items[j], items[i]];
+    if (list.dataset.shuffle === 'true') {
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      items.forEach(item => list.appendChild(item));
     }
-    items.forEach(item => list.appendChild(item));
     const qid = list.dataset.qid;
     document.getElementById(`answer-${qid}`).value = items.map(i => i.dataset.value).join('\n');
   });
 
+  // --- Render a check result ---
+  function showResult(questionId, qType, correct, expected) {
+    const resultEl = document.getElementById(`result-${questionId}`);
+    if (correct) {
+      resultEl.style.color = '#4ADE80';
+      resultEl.textContent = '✓ correct!';
+    } else {
+      resultEl.style.color = '#F87171';
+      let hint = '';
+      if (qType === 'output' || qType === 'short_answer') hint = ` — expected: ${expected}`;
+      else if (qType === 'ordering') hint = ` — correct order: ${expected}`;
+      resultEl.textContent = `✗ not quite${hint}`;
+    }
+  }
+
   // --- Answer checker ---
+  const checkRequestSeq = {};
+
   function checkAnswer(questionId) {
     const answerEl = document.getElementById(`answer-${questionId}`);
     const userAnswer = answerEl.value.trim();
@@ -341,6 +400,9 @@
       .find(c => c.trim().startsWith('csrftoken='))
       ?.split('=')[1];
 
+    const seq = (checkRequestSeq[questionId] || 0) + 1;
+    checkRequestSeq[questionId] = seq;
+
     fetch(`/courses/question/${questionId}/check/`, {
       method: 'POST',
       headers: {
@@ -351,22 +413,22 @@
     })
     .then(r => r.json())
     .then(data => {
-      if (data.correct) {
-        resultEl.style.color = '#4ADE80';
-        resultEl.textContent = '✓ correct!';
-      } else {
-        resultEl.style.color = '#F87171';
-        let hint = '';
-        if (qType === 'output' || qType === 'short_answer') hint = ` — expected: ${data.expected}`;
-        else if (qType === 'ordering') hint = ` — correct order: ${data.expected}`;
-        resultEl.textContent = `✗ not quite${hint}`;
-      }
+      if (checkRequestSeq[questionId] !== seq) return;
+      showResult(questionId, qType, data.correct, data.expected);
     })
     .catch(() => {
+      if (checkRequestSeq[questionId] !== seq) return;
       resultEl.style.color = 'var(--clr-muted)';
       resultEl.textContent = '# something went wrong, try again';
     });
   }
+
+  // --- Restore previously-submitted results for this user ---
+  const initialResults = {{ initial_results_json|safe }};
+  Object.entries(initialResults).forEach(([qid, r]) => {
+    const qType = document.getElementById(`question-${qid}`).dataset.type;
+    showResult(qid, qType, r.correct, r.expected);
+  });
 </script>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
@@ -391,13 +453,12 @@
 
   function clearTerminal() { terminal.innerHTML = ''; }
 
-  function requestInput(prompt, history) {
+  window.__stream_write__ = function (streamName, text) {
+    termWrite(text, streamName === 'stderr' ? '#F87171' : '#E8E6E1', streamName === 'stderr');
+  };
+
+  function requestInput(prompt) {
     return new Promise((resolve) => {
-      clearTerminal();
-      for (const entry of history) {
-        termWrite(entry.prompt, '#E8E6E1');
-        termWrite(entry.answer + '\n', '#B97EF5');
-      }
       if (prompt) termWrite(prompt, '#E8E6E1');
       const cursor = document.createElement('input');
       cursor.type = 'text';
@@ -430,6 +491,14 @@ import sys, io, builtins, js
 
 class InputNeeded(Exception):
     pass
+
+class _LiveStream(io.TextIOBase):
+    def __init__(self, name):
+        self.name = name
+    def write(self, s):
+        if s:
+            js.window.__stream_write__(self.name, s)
+        return len(s)
 
 def _make_input_fn(responses):
     call_index = [0]
@@ -467,38 +536,29 @@ def _make_input_fn(responses):
     const responses = history.map(h => h.answer);
     for (let attempt = 0; attempt <= MAX; attempt++) {
       pyodide.globals.set('__current_responses__', pyodide.toPy(responses));
+      clearTerminal();
+      for (const entry of history) {
+        termWrite(entry.prompt, '#E8E6E1');
+        termWrite(entry.answer + '\n', '#B97EF5');
+      }
       try {
         pyodide.runPython(`
 import sys, io, builtins
-sys.stdout = io.StringIO()
+sys.stdout = _LiveStream('stdout')
 sys.stderr = io.StringIO()
 builtins.input = _make_input_fn(list(__current_responses__))
         `);
         pyodide.runPython(code);
-        clearTerminal();
-        for (const entry of history) {
-          termWrite(entry.prompt, '#E8E6E1');
-          termWrite(entry.answer + '\n', '#B97EF5');
-        }
-        const out = pyodide.runPython('sys.stdout.getvalue()');
-        const err = pyodide.runPython('sys.stderr.getvalue()');
-        if (out) termWrite(out, '#E8E6E1');
-        if (err) termWrite(err, '#F87171', true);
         return;
       } catch (e) {
         const isInputNeeded = e.type === 'InputNeeded' || (e.message && e.message.includes('InputNeeded'));
         if (isInputNeeded) {
           const prompt = window.__pending_prompt__ || '';
           window.__pending_prompt__ = '';
-          const answer = await requestInput(prompt, history);
+          const answer = await requestInput(prompt);
           history.push({ prompt, answer });
           responses.push(answer);
         } else {
-          clearTerminal();
-          for (const entry of history) {
-            termWrite(entry.prompt, '#E8E6E1');
-            termWrite(entry.answer + '\n', '#B97EF5');
-          }
           let errMsg = '';
           try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
           catch (_) { errMsg = e.message || 'Unknown error'; }

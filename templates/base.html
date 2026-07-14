@@ -1,4 +1,5 @@
 {% load static %}
+{% load markdown_extras %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +12,23 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
+
+  {% if active_announcement %}
+  <div id="announcement-overlay" class="announcement-overlay" role="dialog" aria-modal="true" aria-labelledby="announcement-title">
+    <div class="card announcement-modal">
+      <div class="announcement-modal__header">
+        <span class="section-label" style="margin-bottom: 0;">announcement</span>
+        <button type="button" class="announcement-modal__close" onclick="dismissAnnouncement({{ active_announcement.id }})" aria-label="Dismiss announcement">[ x ]</button>
+      </div>
+      <h2 id="announcement-title">{{ active_announcement.title }}</h2>
+      <div class="lesson-content announcement-modal__body">{{ active_announcement.body|render_markdown }}</div>
+      <div class="announcement-modal__actions">
+        <button type="button" class="btn btn--primary" onclick="dismissAnnouncement({{ active_announcement.id }})">[ got it ]</button>
+      </div>
+    </div>
+  </div>
+  <script>document.body.style.overflow = 'hidden';</script>
+  {% endif %}
 
   <nav>
     <div class="nav__inner">
@@ -77,6 +95,21 @@
       localStorage.setItem('theme', isLight ? 'light' : 'dark');
       btn.textContent = isLight ? '[ dark ]' : '[ light ]';
       btn.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+    }
+
+    function dismissAnnouncement(id) {
+      const overlay = document.getElementById('announcement-overlay');
+      if (overlay) overlay.remove();
+      document.body.style.overflow = '';
+
+      const csrfToken = document.cookie.split(';')
+        .find(c => c.trim().startsWith('csrftoken='))
+        ?.split('=')[1];
+
+      fetch(`/courses/announcements/${id}/dismiss/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrfToken },
+      });
     }
   </script>
 

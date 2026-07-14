@@ -90,6 +90,7 @@
     <a href="{% url 'panel:dashboard' %}"    {% if panel_section == 'dashboard' %}class="active"{% endif %}>// dashboard</a>
     <a href="{% url 'panel:course_list' %}"  {% if panel_section == 'courses'   %}class="active"{% endif %}>courses</a>
     <a href="{% url 'panel:students' %}"     {% if panel_section == 'students'  %}class="active"{% endif %}>students</a>
+    <a href="{% url 'panel:announcement_list' %}"{% if panel_section == 'announcements' %}class="active"{% endif %}>announcements</a>
     <a href="{% url 'panel:feedback_list' %}"{% if panel_section == 'feedback'  %}class="active"{% endif %}>
       feedback{% if unresolved_count %} <span style="color:var(--clr-warning);">({{ unresolved_count }})</span>{% endif %}
     </a>
