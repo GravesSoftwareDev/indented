@@ -42,7 +42,8 @@
 
       <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.75rem; align-items: center;">
         <button id="run-btn" class="btn btn--primary" onclick="runCode()">[ run ]</button>
-        <button class="btn btn--ghost" onclick="clearTerminal()">[ clear ]</button>
+        <button class="btn btn--ghost" onclick="resetEditor()">[ clear ]</button>
+        <button class="btn btn--ghost" onclick="clearTerminal()">[ clear output ]</button>
         <span id="status" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--clr-muted);"></span>
       </div>
 
@@ -121,8 +122,10 @@
 
 <script>
   // Init CodeMirror 5
+  const starterCode = 'print("Hello, world!")';
+
   const cmEditor = CodeMirror(document.getElementById('editor'), {
-    value: 'print("Hello, world!")',
+    value: starterCode,
     mode: 'python',
     theme: 'default',
     lineNumbers: true,
@@ -138,6 +141,15 @@
   });
 
   window.getEditorCode = () => cmEditor.getValue();
+
+  // --- Reset editor to starter code ---
+  function resetEditor() {
+    if (cmEditor.getValue() !== starterCode && !confirm('Reset editor to the starter code? Your changes will be lost.')) {
+      return;
+    }
+    cmEditor.setValue(starterCode);
+    cmEditor.focus();
+  }
 </script>
 
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
