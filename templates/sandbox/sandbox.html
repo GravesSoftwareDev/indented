@@ -181,10 +181,12 @@
     termWrite(text, streamName === 'stderr' ? '#F87171' : '#E8E6E1', streamName === 'stderr');
   };
 
-  function requestInput(prompt) {
-    return new Promise((resolve) => {
-      if (prompt) termWrite(prompt, '#E8E6E1');
+  window.__echo_write__ = function (text) {
+    termWrite(text + '\n', '#B97EF5');
+  };
 
+  function requestInput() {
+    return new Promise((resolve) => {
       const cursor = document.createElement('input');
       cursor.type = 'text';
       cursor.autocomplete = 'off';
@@ -234,13 +236,14 @@ class _LiveStream(io.TextIOBase):
 def _make_input_fn(responses):
     call_index = [0]
     def _input(prompt=''):
+        js.window.__stream_write__('stdout', str(prompt))
         idx = call_index[0]
         if idx < len(responses):
-            val = responses[idx]
+            val = str(responses[idx])
             call_index[0] += 1
-            return str(val)
-        js.window.__pending_prompt__ = str(prompt)
-        raise InputNeeded(str(prompt))
+            js.window.__echo_write__(val)
+            return val
+        raise InputNeeded()
     return _input
     `);
     clearInterval(msgInterval);
@@ -273,10 +276,6 @@ def _make_input_fn(responses):
     for (let attempt = 0; attempt <= MAX; attempt++) {
       pyodide.globals.set('__current_responses__', pyodide.toPy(responses));
       clearTerminal();
-      for (const entry of history) {
-        termWrite(entry.prompt, '#E8E6E1');
-        termWrite(entry.answer + '\n', '#B97EF5');
-      }
 
       try {
         pyodide.runPython(`
@@ -293,10 +292,8 @@ builtins.input = _make_input_fn(list(__current_responses__))
           (e.message && e.message.includes('InputNeeded'));
 
         if (isInputNeeded) {
-          const prompt = window.__pending_prompt__ || '';
-          window.__pending_prompt__ = '';
-          const answer = await requestInput(prompt);
-          history.push({ prompt, answer });
+          const answer = await requestInput();
+          history.push({ answer });
           responses.push(answer);
         } else {
           let errMsg = '';
