@@ -168,7 +168,8 @@
 
       <div style="padding: 0.6rem 1rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.6rem; align-items: center; flex-shrink: 0; background: var(--clr-surface);">
         <button id="run-btn" class="btn btn--primary" style="padding: 0.35rem 1rem;" onclick="runCode()">[ run ]</button>
-        <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="clearTerminal()">[ clear ]</button>
+        <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="resetEditor()">[ reset ]</button>
+        <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="clearTerminal()">[ clear output]</button>
         <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="copyOutput()" id="copy-btn">[ copy output ]</button>
       </div>
 
@@ -287,6 +288,15 @@
     });
     wrapper.appendChild(btn);
   });
+
+  // --- Reset editor to starter code ---
+  function resetEditor() {
+    if (cmEditor.getValue() !== starterCode && !confirm('Reset editor to the starter code? Your changes will be lost.')) {
+      return;
+    }
+    cmEditor.setValue(starterCode);
+    cmEditor.focus();
+  }
 
   // --- Copy terminal output ---
   const terminal = document.getElementById('terminal');
