@@ -270,6 +270,8 @@ footer {
   text-decoration: none;
   line-height: 1.4;
   letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn--primary {
