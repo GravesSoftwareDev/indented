@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}My Favorites — Indented{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+  <p class="section-label">saved</p>
+  <h1 style="margin-bottom: 0.25rem;">My <span>Favorites</span></h1>
+  <p class="text-muted" style="margin-bottom: 2rem;">
+    Programs you've starred — your own and ones other students have shared.
+  </p>
+
+  <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+    <a href="{% url 'program_list' %}" class="btn {% if request.resolver_match.url_name == 'program_list' %}btn--primary{% else %}btn--ghost{% endif %}">[ my programs ]</a>
+    <a href="{% url 'program_favorites' %}" class="btn {% if request.resolver_match.url_name == 'program_favorites' %}btn--primary{% else %}btn--ghost{% endif %}">[ my favorites ]</a>
+  </div>
+
+  <p style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+    <a href="{% url 'sandbox' %}" class="btn btn--primary">[ + new program ]</a>
+    <a href="{% url 'program_gallery' %}" class="btn btn--ghost">[ explore public programs ]</a>
+  </p>
+
+  <form method="get" style="margin-bottom: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search your favorites…" style="flex: 1; min-width: 200px;">
+    <button type="submit" class="btn btn--ghost">[ search ]</button>
+    {% if query %}<a href="{% url 'program_favorites' %}" class="btn btn--ghost">[ clear ]</a>{% endif %}
+  </form>
+
+  {% if programs %}
+    <div id="favorites-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+      {% for program in programs %}
+        <div class="card" id="favorite-card-{{ program.pk }}" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+          <div>
+            {% if program.owner_id == request.user.id %}
+              <a href="{% url 'sandbox_edit' pk=program.pk %}" style="font-weight: bold;">{{ program.title }}</a>
+            {% else %}
+              <a href="{% url 'program_share' slug=program.share_slug %}" style="font-weight: bold;">{{ program.title }}</a>
+            {% endif %}
+            {% if program.description %}
+              <p class="text-muted" style="font-size: 0.85rem; margin: 0.25rem 0 0;">{{ program.description }}</p>
+            {% endif %}
+            <p class="text-muted" style="font-size: 0.8rem; margin: 0.25rem 0 0;">
+              by {{ program.owner.username }} &middot; updated {{ program.updated_at|date:"M j, Y" }}
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn--ghost favorite-btn" data-id="{{ program.pk }}" data-favorited="true" onclick="toggleFavorite(this)">
+              <span class="fav-star">★</span> <span class="fav-count">{{ program.favorites_count }}</span>
+            </button>
+            {% if program.owner_id == request.user.id %}
+              <a href="{% url 'sandbox_edit' pk=program.pk %}" class="btn btn--ghost">[ open ]</a>
+            {% else %}
+              <a href="{% url 'program_share' slug=program.share_slug %}" class="btn btn--ghost">[ view ]</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    {% if query %}
+      <p class="text-muted">No favorites match "{{ query }}".</p>
+    {% else %}
+      <p class="text-muted">You haven't favorited any programs yet — star one from My Programs or Explore.</p>
+    {% endif %}
+  {% endif %}
+</div>
+
+<style>
+.favorite-btn[data-favorited="true"] { color: var(--clr-purple); border-color: var(--clr-purple); }
+</style>
+
+<script>
+function getCSRFToken() {
+  return document.cookie.split(';').map(c => c.trim())
+    .find(c => c.startsWith('csrftoken='))?.split('=')[1];
+}
+
+async function toggleFavorite(btn) {
+  const id = btn.dataset.id;
+  const resp = await fetch(`/sandbox/programs/${id}/favorite/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCSRFToken() },
+  });
+  if (!resp.ok) return;
+  const data = await resp.json();
+  // this page only lists favorites, so un-favoriting removes the card immediately
+  if (!data.favorited) {
+    document.getElementById(`favorite-card-${id}`)?.remove();
+    if (!document.querySelector('#favorites-list .card')) location.reload();
+  }
+}
+</script>
+{% endblock %}

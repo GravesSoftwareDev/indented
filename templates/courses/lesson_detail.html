@@ -171,6 +171,7 @@
         <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="resetEditor()">[ reset ]</button>
         <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="clearTerminal()">[ clear output]</button>
         <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="copyOutput()" id="copy-btn">[ copy output ]</button>
+        <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="openInSandbox()">[ open in sandbox ]</button>
       </div>
 
       <div id="terminal" class="lesson-terminal" aria-label="Code output terminal" aria-live="polite">
@@ -296,6 +297,12 @@
     }
     cmEditor.setValue(starterCode);
     cmEditor.focus();
+  }
+
+  // --- Open current code in the full sandbox (new tab, unsaved session) ---
+  function openInSandbox() {
+    localStorage.setItem('sandbox_import_code', window.getEditorCode());
+    window.open('{% url "sandbox" %}', '_blank');
   }
 
   // --- Copy terminal output ---

@@ -39,6 +39,8 @@
         <li><a href="{% url 'sandbox' %}">Sandbox</a></li>
         <li><a href="{% url 'feedback_report' %}">Feedback</a></li>
         {% if user.is_authenticated %}
+          <li><a href="{% url 'program_list' %}">My Programs</a></li>
+          <li><a href="{% url 'program_gallery' %}">Explore</a></li>
           {% if user.is_staff %}
             <li><a href="{% url 'panel:dashboard' %}">Manage</a></li>
           {% endif %}

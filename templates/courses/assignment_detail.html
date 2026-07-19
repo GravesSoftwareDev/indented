@@ -43,6 +43,7 @@
       <button id="run-btn" class="btn btn--primary" style="padding: 0.35rem 1rem;" onclick="runCode()">[ run ]</button>
       <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="clearTerminal()">[ clear output ]</button>
       <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="copyOutput()" id="copy-btn">[ copy output ]</button>
+      <button class="btn btn--ghost" style="padding: 0.35rem 1rem;" onclick="openInSandbox()">[ open in sandbox ]</button>
       {% if assignment.get_test_inputs %}
         <span style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--clr-muted); margin-left: auto;">
           // inputs: {{ assignment.get_test_inputs|join:", " }}
@@ -126,6 +127,12 @@
       cmEditor.setValue(buggyCode);
       localStorage.removeItem(STORAGE_KEY);
     }
+  }
+
+  // --- Open current code in the full sandbox (new tab, unsaved session) ---
+  function openInSandbox() {
+    localStorage.setItem('sandbox_import_code', window.getEditorCode());
+    window.open('{% url "sandbox" %}', '_blank');
   }
 
   // --- Copy terminal output ---

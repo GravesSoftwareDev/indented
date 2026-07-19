@@ -3,7 +3,7 @@
 {% block title %}Sandbox — Indented{% endblock %}
 
 {% block content %}
-<div class="container container--narrow">
+<div class="container">
   <p class="section-label">playground</p>
   <h1 style="margin-bottom: 0.25rem;">Python <span>Sandbox</span></h1>
   <p class="text-muted" style="margin-bottom: 2rem;">
@@ -32,37 +32,91 @@
     </div>
   </div>
 
-  <div id="sandbox-ui" style="display: none;">
-    <div class="card card--accent" style="padding: 0; overflow: hidden;">
+  <div id="sandbox-ui" class="playground-layout" style="display: none;">
 
-      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--clr-border);">
-        <label style="margin-bottom: 0.5rem; display: block;">code</label>
-        <div id="editor" style="border: 1px solid #2A2A2A; border-radius: 6px; overflow: hidden;"></div>
+    <aside class="playground-sidebar">
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="program-title">title</label>
+        <input id="program-title" type="text" placeholder="Untitled Program" value="{{ program.title|default:'' }}">
       </div>
 
-      <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-        <button id="run-btn" class="btn btn--primary" onclick="runCode()">[ run ]</button>
-        <button class="btn btn--ghost" onclick="resetEditor()">[ reset ]</button>
-        <button class="btn btn--ghost" onclick="clearTerminal()">[ clear output ]</button>
-        <span id="status" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--clr-muted);"></span>
+      <div class="form-group" style="margin-bottom: 1rem;">
+        <label for="program-description">description</label>
+        <input id="program-description" type="text" placeholder="What does this program do?" value="{{ program.description|default:'' }}">
       </div>
 
-      <div id="terminal" aria-label="Code output terminal" aria-live="polite" style="
-        background: var(--clr-bg);
-        padding: 1rem 1.25rem;
-        font-family: var(--font-mono);
-        font-size: 0.9rem;
-        min-height: 200px;
-        max-height: 400px;
-        overflow-y: auto;
-        line-height: 1.6;
-        white-space: pre-wrap;
-      "><span style="color: var(--clr-muted)">// output will appear here</span></div>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <button id="save-btn" class="btn btn--primary" style="flex: 1;" onclick="saveProgram()">[ save ]</button>
+        <button id="share-toggle-btn" class="btn btn--ghost" style="flex: 1;" onclick="toggleSharePanel()">[ share ]</button>
+      </div>
 
+      <div id="share-panel" style="
+        display: none;
+        flex-direction: column;
+        gap: 0.6rem;
+        padding: 0.875rem;
+        margin-bottom: 1rem;
+        background: var(--clr-surface-2);
+        border: 1px solid var(--clr-border);
+        border-radius: var(--radius-md);
+      ">
+        <div id="share-unsaved" style="display: {% if program %}none{% else %}block{% endif %};">
+          <p class="text-muted" style="font-size: 0.8rem; margin: 0;">Save your program first to get a shareable link.</p>
+        </div>
+
+        <div id="share-private" style="display: {% if program and not program.is_public %}flex{% else %}none{% endif %}; flex-direction: column; gap: 0.6rem;">
+          <span class="badge" style="align-self: flex-start;">private</span>
+          <p class="text-muted" style="font-size: 0.8rem; margin: 0;">Only you can see this program.</p>
+          <button class="btn btn--ghost btn--block" onclick="togglePublic()">[ make public ]</button>
+        </div>
+
+        <div id="share-public" style="display: {% if program.is_public %}flex{% else %}none{% endif %}; flex-direction: column; gap: 0.6rem;">
+          <span class="badge badge--success" style="align-self: flex-start;">public</span>
+          <input id="share-link" type="text" readonly
+                 value="{% if program %}{{ request.scheme }}://{{ request.get_host }}{% url 'program_share' slug=program.share_slug %}{% endif %}"
+                 style="font-size: 0.75rem; padding: 0.4rem 0.5rem; color: var(--clr-muted);">
+          <button class="btn btn--ghost btn--block" onclick="copyShareLink()">[ copy link ]</button>
+          <button class="btn btn--ghost btn--block" onclick="togglePublic()">[ make private ]</button>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid var(--clr-border); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="{% url 'program_list' %}" class="btn btn--ghost btn--block">[ my programs ]</a>
+        <a href="{% url 'program_gallery' %}" class="btn btn--ghost btn--block">[ explore ]</a>
+      </div>
+    </aside>
+
+    <div class="playground-main">
+      <div class="card card--accent" style="padding: 0; overflow: hidden;">
+
+        <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--clr-border);">
+          <div id="editor" style="border: 1px solid #2A2A2A; border-radius: 6px; overflow: hidden;"></div>
+        </div>
+
+        <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+          <button id="run-btn" class="btn btn--primary" onclick="runCode()">[ run ]</button>
+          <button class="btn btn--ghost" onclick="resetEditor()">[ reset ]</button>
+          <button class="btn btn--ghost" onclick="clearTerminal()">[ clear output ]</button>
+          <span id="status" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--clr-muted);"></span>
+        </div>
+
+        <div id="terminal" aria-label="Code output terminal" aria-live="polite" style="
+          background: var(--clr-bg);
+          padding: 1rem 1.25rem;
+          font-family: var(--font-mono);
+          font-size: 0.9rem;
+          min-height: 200px;
+          max-height: 400px;
+          overflow-y: auto;
+          line-height: 1.6;
+          white-space: pre-wrap;
+        "><span style="color: var(--clr-muted)">// output will appear here</span></div>
+
+      </div>
+      <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.75rem;">
+        # runs in your browser via pyodide — no server needed
+      </p>
     </div>
-    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.75rem;">
-      # runs in your browser via pyodide — no server needed
-    </p>
   </div>
 </div>
 
@@ -70,6 +124,30 @@
 @keyframes pulse {
   0%, 100% { opacity: 0.2; transform: scale(0.8); }
   50%       { opacity: 1;   transform: scale(1.2); }
+}
+
+/* --- Sandbox sidebar layout --- */
+.playground-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.playground-sidebar {
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  position: sticky;
+  top: 1.5rem;
+}
+
+.playground-main { min-width: 0; }
+
+@media (max-width: 860px) {
+  .playground-layout { grid-template-columns: 1fr; }
+  .playground-sidebar { position: static; }
 }
 
 /* CodeMirror base overrides */
@@ -120,9 +198,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/comment/comment.min.js"></script>
 
+{{ program.code|default:'print("Hello, world!")'|json_script:"initial-code" }}
 <script>
   // Init CodeMirror 5
-  const starterCode = 'print("Hello, world!")';
+  let starterCode = JSON.parse(document.getElementById('initial-code').textContent);
+
+  {% if not program %}
+  // Pick up code handed off from a lesson/assignment's "open in sandbox" button.
+  // Only applies to a brand-new session — never overwrites a saved program you're reopening.
+  const importedCode = localStorage.getItem('sandbox_import_code');
+  if (importedCode !== null) {
+    starterCode = importedCode;
+    localStorage.removeItem('sandbox_import_code');
+  }
+  {% endif %}
 
   const cmEditor = CodeMirror(document.getElementById('editor'), {
     value: starterCode,
@@ -141,6 +230,86 @@
   });
 
   window.getEditorCode = () => cmEditor.getValue();
+
+  // --- Save / share ---
+  let currentProgramId = {{ program.id|default:"null" }};
+  let isPublic = {{ program.is_public|yesno:"true,false" }};
+  let shareSlug = "{{ program.share_slug|default:'' }}";
+
+  const sharePanel     = document.getElementById('share-panel');
+  const shareToggleBtn = document.getElementById('share-toggle-btn');
+  const shareUnsaved   = document.getElementById('share-unsaved');
+  const sharePrivate   = document.getElementById('share-private');
+  const sharePublic    = document.getElementById('share-public');
+  const shareLinkInput = document.getElementById('share-link');
+
+  function getCSRFToken() {
+    return document.cookie.split(';').map(c => c.trim())
+      .find(c => c.startsWith('csrftoken='))?.split('=')[1];
+  }
+
+  function updateShareRows() {
+    const saved = !!currentProgramId;
+    shareUnsaved.style.display = saved ? 'none' : 'block';
+    sharePrivate.style.display = saved && !isPublic ? 'flex' : 'none';
+    sharePublic.style.display  = saved && isPublic ? 'flex' : 'none';
+    if (saved) {
+      shareLinkInput.value = `${window.location.origin}/sandbox/s/${shareSlug}/`;
+    }
+  }
+
+  function toggleSharePanel() {
+    const isHidden = sharePanel.style.display === 'none';
+    sharePanel.style.display = isHidden ? 'flex' : 'none';
+    shareToggleBtn.textContent = isHidden ? '[ hide ]' : '[ share ]';
+  }
+
+  async function saveProgram() {
+    const title = document.getElementById('program-title').value || 'Untitled Program';
+    const description = document.getElementById('program-description').value;
+    const code = window.getEditorCode();
+    const saveBtn = document.getElementById('save-btn');
+    saveBtn.disabled = true;
+    const original = saveBtn.textContent;
+    saveBtn.textContent = '[ saving... ]';
+
+    try {
+      const resp = await fetch("{% url 'program_save' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+        body: JSON.stringify({ id: currentProgramId, title, description, code }),
+      });
+      if (!resp.ok) throw new Error('save failed');
+      const data = await resp.json();
+
+      currentProgramId = data.id;
+      isPublic = data.is_public;
+      shareSlug = data.share_slug;
+      updateShareRows();
+      history.replaceState(null, '', `/sandbox/programs/${data.id}/`);
+      saveBtn.textContent = '[ saved ]';
+    } catch (err) {
+      saveBtn.textContent = '[ save failed ]';
+    } finally {
+      setTimeout(() => { saveBtn.disabled = false; saveBtn.textContent = original; }, 1200);
+    }
+  }
+
+  async function togglePublic() {
+    if (!currentProgramId) return;
+    const resp = await fetch(`/sandbox/programs/${currentProgramId}/toggle-public/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRFToken() },
+    });
+    const data = await resp.json();
+    isPublic = data.is_public;
+    updateShareRows();
+  }
+
+  function copyShareLink() {
+    shareLinkInput.select();
+    navigator.clipboard.writeText(shareLinkInput.value);
+  }
 
   // --- Reset editor (clear it completely) ---
   function resetEditor() {
@@ -260,7 +429,7 @@ def _make_input_fn(responses):
     `);
     clearInterval(msgInterval);
     loadingEl.style.display = 'none';
-    sandboxUI.style.display = 'block';
+    sandboxUI.style.display = 'grid';
     // Refresh CodeMirror after display change
     setTimeout(() => cmEditor.refresh(), 50);
   }

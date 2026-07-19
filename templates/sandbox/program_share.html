@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}{{ program.title }} — Public Program — Indented{% endblock %}
+
+{% block content %}
+<div class="container container--narrow">
+  <p class="section-label">public program</p>
+  <h1 style="margin-bottom: 0.25rem;">{{ program.title }}</h1>
+  {% if program.description %}
+    <p style="margin-bottom: 0.5rem;">{{ program.description }}</p>
+  {% endif %}
+  <p class="text-muted" style="margin-bottom: 2rem;">
+    By {{ program.owner.username }} &middot; {{ program.updated_at|date:"M j, Y" }}
+  </p>
+
+  <div id="loading-overlay" style="
+    background: var(--clr-surface);
+    border: 1px solid var(--clr-border);
+    border-left: 3px solid var(--clr-purple);
+    border-radius: var(--radius-lg);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    margin-bottom: 1rem;
+  ">
+    <p style="font-family: var(--font-mono); color: var(--clr-purple); font-size: 1rem; margin-bottom: 0.5rem;">
+      // loading python runtime
+    </p>
+    <p id="loading-msg" style="font-family: var(--font-mono); color: var(--clr-muted); font-size: 0.85rem; margin-bottom: 1.25rem;">
+      downloading pyodide — this only happens once...
+    </p>
+    <div style="display: flex; justify-content: center; gap: 0.5rem;">
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--clr-purple); animation: pulse 1.2s infinite 0s;"></div>
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--clr-purple); animation: pulse 1.2s infinite 0.4s;"></div>
+      <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--clr-purple); animation: pulse 1.2s infinite 0.8s;"></div>
+    </div>
+  </div>
+
+  <div id="sandbox-ui" style="display: none;">
+    <div class="card card--accent" style="padding: 0; overflow: hidden;">
+
+      <div style="padding: 1rem 1.25rem; border-bottom: 1px solid var(--clr-border);">
+        <label style="margin-bottom: 0.5rem; display: block;">code (read-only)</label>
+        <div id="editor" style="border: 1px solid #2A2A2A; border-radius: 6px; overflow: hidden;"></div>
+      </div>
+
+      <div style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--clr-border); display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <button id="run-btn" class="btn btn--primary" onclick="runCode()">[ run ]</button>
+        <button class="btn btn--ghost" onclick="clearTerminal()">[ clear output ]</button>
+        {% if user.is_authenticated %}
+          <button id="fork-btn" class="btn btn--ghost" onclick="forkProgram()">[ fork to my sandbox ]</button>
+        {% else %}
+          <a class="btn btn--ghost" href="{% url 'login' %}?next={{ request.path }}">[ log in to fork ]</a>
+        {% endif %}
+        <span id="status" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--clr-muted);"></span>
+      </div>
+
+      <div id="terminal" aria-label="Code output terminal" aria-live="polite" style="
+        background: var(--clr-bg);
+        padding: 1rem 1.25rem;
+        font-family: var(--font-mono);
+        font-size: 0.9rem;
+        min-height: 200px;
+        max-height: 400px;
+        overflow-y: auto;
+        line-height: 1.6;
+        white-space: pre-wrap;
+      "><span style="color: var(--clr-muted)">// output will appear here</span></div>
+
+    </div>
+    <p class="text-muted" style="font-size: 0.8rem; margin-top: 0.75rem;">
+      # runs in your browser via pyodide — no server needed
+    </p>
+  </div>
+</div>
+
+<style>
+@keyframes pulse {
+  0%, 100% { opacity: 0.2; transform: scale(0.8); }
+  50%       { opacity: 1;   transform: scale(1.2); }
+}
+
+/* CodeMirror base overrides */
+.cm-editor {
+  background: #0D0D0D !important;
+  font-family: 'Courier New', Courier, monospace !important;
+  font-size: 0.9rem !important;
+}
+.cm-editor.cm-focused { outline: none !important; box-shadow: 0 0 0 3px rgba(185,126,245,0.15) !important; }
+.cm-scroller { min-height: 300px !important; max-height: 500px !important; overflow: auto !important; }
+.cm-content  { padding: 0.75rem 0 !important; caret-color: #B97EF5 !important; }
+.cm-gutters  { background: #111111 !important; border-right: 1px solid #2A2A2A !important; color: #444441 !important; }
+.cm-activeLineGutter { background: #1A1A1A !important; color: #B97EF5 !important; }
+.cm-activeLine { background: rgba(185,126,245,0.05) !important; }
+.cm-cursor   { border-left-color: #B97EF5 !important; }
+.cm-focused .cm-selectionBackground,
+.cm-selectionBackground { background: rgba(185,126,245,0.2) !important; }
+.cm-matchingBracket { background: rgba(185,126,245,0.3) !important; color: #fff !important; }
+
+/* Syntax colors via CodeMirror 5-style CSS classes that CM6 also emits */
+.cm-keyword   { color: #F57EB9 !important; }
+.cm-operator  { color: #F57EB9 !important; }
+.cm-atom      { color: #F57EB9 !important; }
+.cm-builtin   { color: #F57EB9 !important; }
+.cm-string    { color: #7EE8F5 !important; }
+.cm-string-2  { color: #7EE8F5 !important; }
+.cm-def       { color: #7EE8F5 !important; }
+.cm-number    { color: #41ffb6 !important; }
+.cm-variable  { color: #B97EF5 !important; }
+.cm-variable-2 { color: #B97EF5 !important; }
+.cm-property  { color: #B97EF5 !important; }
+.cm-comment   { color: #4A4A47 !important; font-style: italic !important; }
+.cm-punctuation { color: #888780 !important; }
+.cm-bracket   { color: #888780 !important; }
+.cm-tag       { color: #7EE8F5 !important; }
+.cm-meta      { color: #F57EB9 !important; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+
+{{ program.code|json_script:"initial-code" }}
+<script>
+  const starterCode = JSON.parse(document.getElementById('initial-code').textContent);
+
+  const cmEditor = CodeMirror(document.getElementById('editor'), {
+    value: starterCode,
+    mode: 'python',
+    theme: 'default',
+    lineNumbers: true,
+    matchBrackets: true,
+    readOnly: true,
+  });
+
+  function getCSRFToken() {
+    return document.cookie.split(';').map(c => c.trim())
+      .find(c => c.startsWith('csrftoken='))?.split('=')[1];
+  }
+
+  async function forkProgram() {
+    const forkBtn = document.getElementById('fork-btn');
+    forkBtn.disabled = true;
+    forkBtn.textContent = '[ forking... ]';
+    try {
+      const resp = await fetch("{% url 'program_fork' slug=program.share_slug %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+      });
+      if (!resp.ok) throw new Error('fork failed');
+      const data = await resp.json();
+      window.location.href = `/sandbox/programs/${data.id}/`;
+    } catch (err) {
+      forkBtn.disabled = false;
+      forkBtn.textContent = '[ fork failed — try again ]';
+    }
+  }
+</script>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+  let pyodide = null;
+  let isRunning = false;
+
+  const terminal   = document.getElementById('terminal');
+  const status     = document.getElementById('status');
+  const runBtn     = document.getElementById('run-btn');
+  const loadingEl  = document.getElementById('loading-overlay');
+  const loadingMsg = document.getElementById('loading-msg');
+  const sandboxUI  = document.getElementById('sandbox-ui');
+
+  const loadingMessages = [
+    'downloading pyodide — this only happens once...',
+    'unpacking python runtime...',
+    'setting up the environment...',
+    'almost ready...',
+  ];
+  let msgIndex = 0;
+  const msgInterval = setInterval(() => {
+    msgIndex = (msgIndex + 1) % loadingMessages.length;
+    loadingMsg.textContent = loadingMessages[msgIndex];
+  }, 3000);
+
+  function termWrite(text, color, isError) {
+    const span = document.createElement('span');
+    span.style.color = color || '#E8E6E1';
+    if (isError) span.className = 'term-error';
+    span.textContent = text;
+    terminal.appendChild(span);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function clearTerminal() {
+    terminal.innerHTML = '';
+  }
+
+  window.__stream_write__ = function (streamName, text) {
+    termWrite(text, streamName === 'stderr' ? '#F87171' : '#E8E6E1', streamName === 'stderr');
+  };
+
+  window.__echo_write__ = function (text) {
+    termWrite(text + '\n', '#B97EF5');
+  };
+
+  function requestInput() {
+    return new Promise((resolve) => {
+      const cursor = document.createElement('input');
+      cursor.type = 'text';
+      cursor.autocomplete = 'off';
+      cursor.spellcheck = false;
+      cursor.style.cssText = `
+        background: transparent;
+        border: none;
+        border-bottom: 1px solid #B97EF5;
+        color: #B97EF5;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9rem;
+        outline: none;
+        width: 200px;
+        padding: 0 2px;
+      `;
+      terminal.appendChild(cursor);
+      terminal.scrollTop = terminal.scrollHeight;
+      cursor.focus();
+
+      cursor.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const value = cursor.value;
+          cursor.remove();
+          termWrite(value + '\n', '#B97EF5');
+          resolve(value);
+        }
+      });
+    });
+  }
+
+  async function loadPyodide_() {
+    pyodide = await loadPyodide();
+    pyodide.runPython(`
+import sys, io, builtins, js
+
+class InputNeeded(Exception):
+    pass
+
+class _LiveStream(io.TextIOBase):
+    def __init__(self, name):
+        self.name = name
+    def write(self, s):
+        if s:
+            js.window.__stream_write__(self.name, s)
+        return len(s)
+
+def _make_input_fn(responses):
+    call_index = [0]
+    def _input(prompt=''):
+        js.window.__stream_write__('stdout', str(prompt))
+        idx = call_index[0]
+        if idx < len(responses):
+            val = str(responses[idx])
+            call_index[0] += 1
+            js.window.__echo_write__(val)
+            return val
+        raise InputNeeded()
+    return _input
+    `);
+    clearInterval(msgInterval);
+    loadingEl.style.display = 'none';
+    sandboxUI.style.display = 'block';
+    setTimeout(() => cmEditor.refresh(), 50);
+  }
+
+  async function runCode() {
+    if (!pyodide || isRunning) return;
+    isRunning = true;
+    runBtn.disabled = true;
+    status.textContent = 'running...';
+    clearTerminal();
+
+    const code = cmEditor.getValue();
+    const history = [];
+    await executeWithInputs(code, history);
+
+    isRunning = false;
+    runBtn.disabled = false;
+    status.textContent = 'done.';
+  }
+
+  async function executeWithInputs(code, history) {
+    const MAX = 20;
+    const responses = history.map(h => h.answer);
+
+    for (let attempt = 0; attempt <= MAX; attempt++) {
+      pyodide.globals.set('__current_responses__', pyodide.toPy(responses));
+      clearTerminal();
+
+      try {
+        pyodide.runPython(`
+import sys, io, builtins
+sys.stdout = _LiveStream('stdout')
+sys.stderr = io.StringIO()
+builtins.input = _make_input_fn(list(__current_responses__))
+        `);
+        pyodide.runPython(code);
+        return;
+
+      } catch (e) {
+        const isInputNeeded = e.type === 'InputNeeded' ||
+          (e.message && e.message.includes('InputNeeded'));
+
+        if (isInputNeeded) {
+          const answer = await requestInput();
+          history.push({ answer });
+          responses.push(answer);
+        } else {
+          let errMsg = '';
+          try { errMsg = pyodide.runPython('sys.stderr.getvalue()') || e.message || 'Unknown error'; }
+          catch (_) { errMsg = e.message || 'Unknown error'; }
+          termWrite(errMsg, '#F87171', true);
+          return;
+        }
+      }
+    }
+    termWrite('Error: exceeded maximum input() calls.\n', '#F87171', true);
+  }
+
+  loadPyodide_();
+</script>
+{% endblock %}
